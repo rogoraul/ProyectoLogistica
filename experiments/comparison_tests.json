@@ -1,0 +1,29 @@
+{
+  "overall": {
+    "n_pairs": 75,
+    "wins_grasp": 30,
+    "wins_ts": 15,
+    "ties": 30,
+    "mean_delta_ts_minus_grasp": -15.0763,
+    "status": "unavailable",
+    "reason": "scipy_not_installed"
+  },
+  "small": {
+    "n_pairs": 30,
+    "wins_grasp": 0,
+    "wins_ts": 0,
+    "ties": 30,
+    "mean_delta_ts_minus_grasp": 0.0,
+    "status": "skipped",
+    "reason": "all_pairs_tied"
+  },
+  "large": {
+    "n_pairs": 45,
+    "wins_grasp": 30,
+    "wins_ts": 15,
+    "ties": 0,
+    "mean_delta_ts_minus_grasp": -25.1271,
+    "status": "unavailable",
+    "reason": "scipy_not_installed"
+  }
+}

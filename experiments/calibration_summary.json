@@ -1,0 +1,69 @@
+{
+  "generated_at": "2026-04-03T16:14:32",
+  "mode": "sequential",
+  "time_limit_s": 10,
+  "runs_per_config": 3,
+  "alpha_values": [
+    0.1,
+    0.25,
+    0.5,
+    0.75,
+    0.9,
+    -1
+  ],
+  "tenure_values": [
+    5,
+    10,
+    15,
+    20,
+    25,
+    30
+  ],
+  "alpha_sweep_tenure": 15,
+  "groups": {
+    "small": {
+      "label": "SMALL (n=100)",
+      "grasp": {
+        "best_alpha": 0.1,
+        "best_avg_dev_pct": 0.0
+      },
+      "ts": {
+        "best_alpha": 0.25,
+        "best_tenure": 15,
+        "best_avg_dev_pct": 0.0,
+        "alpha_sweep": {
+          "tenure": 15,
+          "best_alpha": 0.25,
+          "best_avg_dev_pct": 0.0
+        },
+        "tenure_sweep": {
+          "alpha": 0.25,
+          "best_tenure": 15,
+          "best_avg_dev_pct": 0.0
+        }
+      }
+    },
+    "large": {
+      "label": "LARGE (n=500)",
+      "grasp": {
+        "best_alpha": 0.1,
+        "best_avg_dev_pct": 0.2536
+      },
+      "ts": {
+        "best_alpha": 0.9,
+        "best_tenure": 10,
+        "best_avg_dev_pct": 0.0906,
+        "alpha_sweep": {
+          "tenure": 15,
+          "best_alpha": 0.9,
+          "best_avg_dev_pct": 0.1094
+        },
+        "tenure_sweep": {
+          "alpha": 0.9,
+          "best_tenure": 10,
+          "best_avg_dev_pct": 0.0906
+        }
+      }
+    }
+  }
+}
