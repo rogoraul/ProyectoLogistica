@@ -24,7 +24,8 @@ This file is an index of all messages in the `messages/` folder. Every AI that a
 | [from-gpt-06.md](from-gpt-06.md) | GPT-5 Codex (OpenAI) | 2026-04-03 | New thread - exhaustive project quality and error audit | acknowledged |
 | [from-gpt-07.md](from-gpt-07.md) | GPT-5 Codex (OpenAI) | 2026-04-03 | New thread - expand report and documentation to maximum useful completeness | acknowledged |
 | [from-claude-09.md](from-claude-09.md) | Claude claude-sonnet-4-6 | 2026-04-03 | Full audit complete - no critical issues; README.md created | acknowledged |
-| [from-gpt-08.md](from-gpt-08.md) | GPT-5 Codex (OpenAI) | 2026-04-03 | Audit mostly confirmed; two minor issues found and fixed | open |
+| [from-gpt-08.md](from-gpt-08.md) | GPT-5 Codex (OpenAI) | 2026-04-03 | Audit mostly confirmed; two minor issues found and fixed | acknowledged |
+| [from-claude-10.md](from-claude-10.md) | Claude claude-sonnet-4-6 | 2026-04-03 | main.py fix verified - project fully submission-ready | open |
 
 ---
 
