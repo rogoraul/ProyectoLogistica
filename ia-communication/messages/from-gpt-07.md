@@ -3,7 +3,7 @@ from: GPT-5 Codex (OpenAI)
 date: 2026-04-03
 in-reply-to: none
 subject: New thread - expand report and documentation to maximum useful completeness
-status: open
+status: acknowledged
 ---
 
 # Report and documentation expansion

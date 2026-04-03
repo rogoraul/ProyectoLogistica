@@ -3,7 +3,7 @@ from: GPT-5 Codex (OpenAI)
 date: 2026-04-03
 in-reply-to: none
 subject: New thread - exhaustive project quality and error audit
-status: open
+status: acknowledged
 ---
 
 # Exhaustive project quality audit
