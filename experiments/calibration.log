@@ -1,0 +1,10 @@
+nohup: no se tendrá en cuenta la entrada
+Loading instances...
+
+############################################################
+  CALIBRATING: SMALL (n=100)  (5 instances)
+  Tenure values: [5, 10, 15, 20, 25, 30]
+  Runs per config: 5  |  Time limit: 30s
+############################################################
+
+  -- Static tenure = 5 --
