@@ -1,190 +1,467 @@
-import os
 import csv
-import time
+import json
+import os
 import random
 import sys
+import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from structure import instance
-from algorithms import grasp_ts
+from algorithms import grasp_timed, grasp_ts
 
 
-# ------------------- #
+# -------------------- #
 # CALIBRATION SETTINGS #
-# ------------------- #
+# -------------------- #
 
 INSTANCES_DIR = "instances"
-RANDOM_SEED   = 42
-ALPHA         = -1          # random alpha per GRASP iteration
-TIME_LIMIT    = 30          # seconds per run during calibration
-MAX_ITER      = 5000        # max non-improving iterations inside TS
-RUNS_PER_CONF = 5           # independent runs to average out randomness
-
-# Tenure values to test (static memory)
+RANDOM_SEED = 42
+CALIBRATION_MODE = "sequential"   # "sequential" or "joint"
+ALPHA_VALUES = [0.1, 0.25, 0.5, 0.75, 0.9, -1]
 TENURE_VALUES = [5, 10, 15, 20, 25, 30]
+ALPHA_SWEEP_TENURE = 15          # anchor tenure used by sequential TS alpha sweep
+TIME_LIMIT = 10                  # shorter budget to keep calibration practical
+MAX_ITER = 5000
+RUNS_PER_CONF = 3
 
-# Instance groups - edit these lists to match your exact filenames
-SMALL_INSTANCES = [
-    "MDG-a_1_100_m10.txt",
-    "MDG-a_4_100_m10.txt",
-    "MDG-a_10_100_m10.txt",
-    "MDG-a_12_100_m10.txt",
-    "MDG-a_14_100_m10.txt",
-]
+GRASP_DETAIL_CSV = "experiments/calibration_grasp.csv"
+GRASP_SUMMARY_CSV = "experiments/calibration_grasp_summary.csv"
+GRASP_RUNS_CSV = "experiments/calibration_grasp_runs.csv"
+TS_DETAIL_CSV = "experiments/calibration_ts.csv"
+TS_SUMMARY_CSV = "experiments/calibration_ts_summary.csv"
+TS_RUNS_CSV = "experiments/calibration_ts_runs.csv"
+SUMMARY_JSON = "experiments/calibration_summary.json"
 
-LARGE_INSTANCES = [
-    "MDG-a_2_n500_m50.txt",
-    "MDG-a_5_n500_m50.txt",
-    "MDG-a_6_n500_m50.txt",
-    "MDG-a_9_n500_m50.txt",
-    "MDG-a_13_n500_m50.txt",
-]
+GROUPS = {
+    "small": {
+        "label": "SMALL (n=100)",
+        "instances": [
+            "MDG-a_1_100_m10.txt",
+            "MDG-a_4_100_m10.txt",
+            "MDG-a_10_100_m10.txt",
+            "MDG-a_12_100_m10.txt",
+            "MDG-a_14_100_m10.txt",
+        ],
+    },
+    "large": {
+        "label": "LARGE (n=500)",
+        "instances": [
+            "MDG-a_2_n500_m50.txt",
+            "MDG-a_5_n500_m50.txt",
+            "MDG-a_6_n500_m50.txt",
+            "MDG-a_9_n500_m50.txt",
+            "MDG-a_13_n500_m50.txt",
+        ],
+    },
+}
 
 
-# ---------- #
-# HELPERS    #
-# ---------- #
+# ------- #
+# HELPERS #
+# ------- #
 
 def load_instances(names):
-    instances = []
+    loaded = []
     for name in names:
         path = os.path.join(INSTANCES_DIR, name)
         if not os.path.exists(path):
             print(f"  WARNING: file not found -> {path}")
             continue
-        inst = instance.readInstance(path)
-        instances.append((name, inst))
-    return instances
+        loaded.append((name, instance.readInstance(path)))
+    return loaded
 
 
-def run_tenure(inst_list, tenure, runs, dynamic=False):
-    """
-    Run GRASP+TS with a given tenure on every instance in inst_list.
-    Returns a list of (instance_name, avg_of, avg_time) tuples.
-    """
+def sample_std(values):
+    if len(values) < 2:
+        return 0.0
+    mean = sum(values) / len(values)
+    variance = sum((value - mean) ** 2 for value in values) / (len(values) - 1)
+    return round(variance ** 0.5, 4)
+
+
+def run_algorithm(algo_fn, inst, runs, **kwargs):
     results = []
-    for name, inst in inst_list:
-        of_values = []
-        times = []
-        for r in range(runs):
-            random.seed(RANDOM_SEED + r)
-            t0 = time.time()
-            sol = grasp_ts.execute(
-                inst,
-                alpha=ALPHA,
-                time_limit=TIME_LIMIT,
-                tabu_tenure=tenure,
-                max_iter=MAX_ITER,
-                dynamic=dynamic,
-                tenure_min=max(2, tenure - 5),
-                tenure_max=tenure + 5,
-            )
-            elapsed = time.time() - t0
-            of_values.append(sol['of'])
-            times.append(elapsed)
-        avg_of   = round(sum(of_values) / runs, 2)
-        avg_time = round(sum(times) / runs, 2)
-        results.append((name, avg_of, avg_time))
-        print(f"    {name:35s}  avg_OF={avg_of:10.2f}  avg_time={avg_time:.1f}s")
+    for run_idx in range(runs):
+        seed = RANDOM_SEED + run_idx
+        random.seed(seed)
+        start = time.time()
+        sol = algo_fn(inst, **kwargs)
+        elapsed = round(time.time() - start, 3)
+        results.append({
+            "run": run_idx,
+            "seed": seed,
+            "of": round(sol["of"], 2),
+            "elapsed_s": elapsed,
+        })
     return results
 
 
-def compute_dev(results_by_tenure):
-    """
-    Given {tenure: [(name, avg_of, avg_time), ...]},
-    compute the Dev% of each tenure relative to the best known OF per instance.
-    Returns {tenure: avg_dev_pct}
-    """
-    # Collect best OF per instance across all tenures
-    best_of = {}
-    for tenure, rows in results_by_tenure.items():
-        for name, avg_of, _ in rows:
-            best_of[name] = max(best_of.get(name, 0), avg_of)
-
-    avg_devs = {}
-    for tenure, rows in results_by_tenure.items():
-        devs = []
-        for name, avg_of, _ in rows:
-            if best_of[name] > 0:
-                dev = (best_of[name] - avg_of) / best_of[name] * 100
-            else:
-                dev = 0.0
-            devs.append(dev)
-        avg_devs[tenure] = round(sum(devs) / len(devs), 4) if devs else 0.0
-    return avg_devs
+def summarise_runs(run_results):
+    of_values = [row["of"] for row in run_results]
+    time_values = [row["elapsed_s"] for row in run_results]
+    count = len(of_values)
+    return {
+        "avg_of": round(sum(of_values) / count, 2),
+        "best_of": max(of_values),
+        "worst_of": min(of_values),
+        "std_of": sample_std(of_values),
+        "avg_time_s": round(sum(time_values) / count, 3),
+    }
 
 
-def print_summary_table(group_name, results_by_tenure, avg_devs):
-    print(f"\n{'='*60}")
-    print(f"  CALIBRATION SUMMARY - {group_name}")
-    print(f"{'='*60}")
-    print(f"  {'Tenure':>8}  {'Avg Dev%':>10}  {'Best?':>6}")
-    print(f"  {'-'*8}  {'-'*10}  {'-'*6}")
-    best_tenure = min(avg_devs, key=avg_devs.get)
-    for tenure, dev in sorted(avg_devs.items()):
-        marker = "<-- BEST" if tenure == best_tenure else ""
-        print(f"  {tenure:>8}  {dev:>10.4f}  {marker}")
-    print(f"{'='*60}")
-    return best_tenure
+def compute_avg_dev(detail_rows, config_keys):
+    best_by_instance = {}
+    for row in detail_rows:
+        inst_name = row["instance"]
+        best_by_instance[inst_name] = max(best_by_instance.get(inst_name, 0), row["avg_of"])
+
+    totals = {}
+    counts = {}
+    for row in detail_rows:
+        config = tuple(row[key] for key in config_keys)
+        best_of = best_by_instance[row["instance"]]
+        dev = 0.0 if best_of <= 0 else (best_of - row["avg_of"]) / best_of * 100
+        totals[config] = totals.get(config, 0.0) + dev
+        counts[config] = counts.get(config, 0) + 1
+
+    return {
+        config: round(totals[config] / counts[config], 4)
+        for config in totals
+    }
 
 
-# ---------- #
-# MAIN       #
-# ---------- #
+def build_config_summary(detail_rows, config_keys, extra_fields=None):
+    extra_fields = extra_fields or []
+    dev_by_config = compute_avg_dev(detail_rows, config_keys)
+    grouped_rows = {}
 
-def calibrate(inst_list, group_name):
-    print(f"\n{'#'*60}")
-    print(f"  CALIBRATING: {group_name}  ({len(inst_list)} instances)")
-    print(f"  Tenure values: {TENURE_VALUES}")
-    print(f"  Runs per config: {RUNS_PER_CONF}  |  Time limit: {TIME_LIMIT}s")
-    print(f"{'#'*60}")
+    for row in detail_rows:
+        config = tuple(row[key] for key in config_keys)
+        row["avg_dev_pct"] = dev_by_config[config]
+        grouped_rows.setdefault(config, []).append(row)
 
-    results_by_tenure = {}
-    raw_rows = []
+    summary_rows = []
+    for config, rows in grouped_rows.items():
+        summary_row = {key: value for key, value in zip(config_keys, config)}
+        for field in extra_fields:
+            summary_row[field] = rows[0][field]
+        summary_row["avg_dev_pct"] = dev_by_config[config]
+        summary_row["mean_avg_of"] = round(sum(row["avg_of"] for row in rows) / len(rows), 2)
+        summary_row["mean_time_s"] = round(sum(row["avg_time_s"] for row in rows) / len(rows), 3)
+        summary_rows.append(summary_row)
 
-    for tenure in TENURE_VALUES:
-        print(f"\n  -- Static tenure = {tenure} --")
-        res = run_tenure(inst_list, tenure, RUNS_PER_CONF)
-        results_by_tenure[tenure] = res
-        for name, avg_of, avg_time in res:
-            raw_rows.append({
-                "group":      group_name,
-                "tenure":     tenure,
-                "instance":   name,
-                "avg_of":     avg_of,
-                "avg_time_s": avg_time,
+    summary_rows.sort(key=lambda row: (row["avg_dev_pct"], -row["mean_avg_of"], row["mean_time_s"]))
+    best_row = summary_rows[0] if summary_rows else None
+    return summary_rows, best_row
+
+
+def write_csv(path, rows, fieldnames):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def print_summary_table(title, summary_rows):
+    print(f"\n{'=' * 72}")
+    print(f"  {title}")
+    print(f"{'=' * 72}")
+    for row in summary_rows:
+        params = []
+        if "phase" in row:
+            params.append(f"phase={row['phase']}")
+        if "alpha" in row:
+            params.append(f"alpha={row['alpha']}")
+        if "tenure" in row:
+            params.append(f"tenure={row['tenure']}")
+        param_text = "  ".join(params)
+        marker = "  <-- BEST" if row is summary_rows[0] else ""
+        print(
+            f"  {param_text:<32} avg_dev={row['avg_dev_pct']:>8.4f}%"
+            f"  mean_OF={row['mean_avg_of']:>10.2f}{marker}"
+        )
+    print(f"{'=' * 72}")
+
+
+# ---------------- #
+# CALIBRATION RUNS #
+# ---------------- #
+
+def calibrate_grasp(group_key, inst_list):
+    detail_rows = []
+    run_rows = []
+
+    print(f"\n{'#' * 72}")
+    print(f"  CALIBRATING GRASP BASELINE - {GROUPS[group_key]['label']}")
+    print(f"  alpha values: {ALPHA_VALUES}")
+    print(f"  runs/config: {RUNS_PER_CONF}  |  time_limit: {TIME_LIMIT}s")
+    print(f"{'#' * 72}")
+
+    for alpha in ALPHA_VALUES:
+        print(f"\n  -- alpha = {alpha} --")
+        for name, inst in inst_list:
+            run_results = run_algorithm(
+                grasp_timed.execute,
+                inst,
+                RUNS_PER_CONF,
+                alpha=alpha,
+                time_limit=TIME_LIMIT,
+            )
+            stats = summarise_runs(run_results)
+            detail_rows.append({
+                "group": group_key,
+                "instance": name,
+                "alpha": alpha,
+                **stats,
             })
+            for run in run_results:
+                run_rows.append({
+                    "group": group_key,
+                    "instance": name,
+                    "alpha": alpha,
+                    **run,
+                })
+            print(
+                f"    {name:35s} avg_OF={stats['avg_of']:10.2f}  "
+                f"std={stats['std_of']:7.4f}  avg_time={stats['avg_time_s']:.3f}s"
+            )
 
-    avg_devs = compute_dev(results_by_tenure)
-    best = print_summary_table(group_name, results_by_tenure, avg_devs)
-    return best, avg_devs, raw_rows
+    summary_rows, best_row = build_config_summary(detail_rows, ("alpha",), extra_fields=["group"])
+    print_summary_table(f"GRASP SUMMARY - {GROUPS[group_key]['label']}", summary_rows)
+    return best_row, detail_rows, summary_rows, run_rows
 
+
+def evaluate_ts_configs(group_key, inst_list, phase, alpha_values, tenure_values):
+    detail_rows = []
+    run_rows = []
+
+    for alpha in alpha_values:
+        for tenure in tenure_values:
+            print(f"\n  -- phase={phase}  alpha={alpha}  tenure={tenure} --")
+            for name, inst in inst_list:
+                run_results = run_algorithm(
+                    grasp_ts.execute,
+                    inst,
+                    RUNS_PER_CONF,
+                    alpha=alpha,
+                    time_limit=TIME_LIMIT,
+                    tabu_tenure=tenure,
+                    max_iter=MAX_ITER,
+                )
+                stats = summarise_runs(run_results)
+                detail_rows.append({
+                    "group": group_key,
+                    "phase": phase,
+                    "instance": name,
+                    "alpha": alpha,
+                    "tenure": tenure,
+                    **stats,
+                })
+                for run in run_results:
+                    run_rows.append({
+                        "group": group_key,
+                        "phase": phase,
+                        "instance": name,
+                        "alpha": alpha,
+                        "tenure": tenure,
+                        **run,
+                    })
+                print(
+                    f"    {name:35s} avg_OF={stats['avg_of']:10.2f}  "
+                    f"std={stats['std_of']:7.4f}  avg_time={stats['avg_time_s']:.3f}s"
+                )
+
+    summary_rows, best_row = build_config_summary(
+        detail_rows,
+        ("alpha", "tenure"),
+        extra_fields=["group", "phase"],
+    )
+    return best_row, detail_rows, summary_rows, run_rows
+
+
+def calibrate_ts(group_key, inst_list):
+    print(f"\n{'#' * 72}")
+    print(f"  CALIBRATING GRASP+TS - {GROUPS[group_key]['label']}")
+    print(f"  mode: {CALIBRATION_MODE}")
+    print(f"  alpha values: {ALPHA_VALUES}")
+    print(f"  tenure values: {TENURE_VALUES}")
+    print(f"  runs/config: {RUNS_PER_CONF}  |  time_limit: {TIME_LIMIT}s")
+    print(f"{'#' * 72}")
+
+    if CALIBRATION_MODE == "joint":
+        best_row, detail_rows, summary_rows, run_rows = evaluate_ts_configs(
+            group_key,
+            inst_list,
+            "joint",
+            ALPHA_VALUES,
+            TENURE_VALUES,
+        )
+        print_summary_table(f"GRASP+TS SUMMARY - {GROUPS[group_key]['label']}", summary_rows)
+        return {
+            "best_alpha": best_row["alpha"],
+            "best_tenure": best_row["tenure"],
+            "best_avg_dev_pct": best_row["avg_dev_pct"],
+            "phase_best_rows": {"joint": best_row},
+            "detail_rows": detail_rows,
+            "summary_rows": summary_rows,
+            "run_rows": run_rows,
+        }
+
+    alpha_best, alpha_detail, alpha_summary, alpha_runs = evaluate_ts_configs(
+        group_key,
+        inst_list,
+        "alpha_sweep",
+        ALPHA_VALUES,
+        [ALPHA_SWEEP_TENURE],
+    )
+    print_summary_table(
+        f"GRASP+TS ALPHA SWEEP - {GROUPS[group_key]['label']}",
+        alpha_summary,
+    )
+
+    tenure_best, tenure_detail, tenure_summary, tenure_runs = evaluate_ts_configs(
+        group_key,
+        inst_list,
+        "tenure_sweep",
+        [alpha_best["alpha"]],
+        TENURE_VALUES,
+    )
+    print_summary_table(
+        f"GRASP+TS TENURE SWEEP - {GROUPS[group_key]['label']}",
+        tenure_summary,
+    )
+
+    return {
+        "best_alpha": tenure_best["alpha"],
+        "best_tenure": tenure_best["tenure"],
+        "best_avg_dev_pct": tenure_best["avg_dev_pct"],
+        "phase_best_rows": {
+            "alpha_sweep": alpha_best,
+            "tenure_sweep": tenure_best,
+        },
+        "detail_rows": alpha_detail + tenure_detail,
+        "summary_rows": alpha_summary + tenure_summary,
+        "run_rows": alpha_runs + tenure_runs,
+    }
+
+
+# ---- #
+# MAIN #
+# ---- #
 
 if __name__ == "__main__":
-    print("Loading instances...")
-    small_list = load_instances(SMALL_INSTANCES)
-    large_list = load_instances(LARGE_INSTANCES)
+    print("Loading calibration subsets...")
 
-    best_small, devs_small, rows_small = calibrate(small_list, "SMALL (n=100)")
-    best_large, devs_large, rows_large = calibrate(large_list, "LARGE (n=500)")
+    grasp_detail_rows = []
+    grasp_summary_rows = []
+    grasp_run_rows = []
+    ts_detail_rows = []
+    ts_summary_rows = []
+    ts_run_rows = []
 
-    print("\n\n" + "="*60)
+    summary_doc = {
+        "generated_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "mode": CALIBRATION_MODE,
+        "time_limit_s": TIME_LIMIT,
+        "runs_per_config": RUNS_PER_CONF,
+        "alpha_values": ALPHA_VALUES,
+        "tenure_values": TENURE_VALUES,
+        "alpha_sweep_tenure": ALPHA_SWEEP_TENURE,
+        "groups": {},
+    }
+
+    for group_key, group_cfg in GROUPS.items():
+        inst_list = load_instances(group_cfg["instances"])
+        if not inst_list:
+            print(f"Skipping group {group_key}: no instances loaded")
+            continue
+
+        best_grasp, g_detail, g_summary, g_runs = calibrate_grasp(group_key, inst_list)
+        ts_result = calibrate_ts(group_key, inst_list)
+
+        grasp_detail_rows.extend(g_detail)
+        grasp_summary_rows.extend(g_summary)
+        grasp_run_rows.extend(g_runs)
+        ts_detail_rows.extend(ts_result["detail_rows"])
+        ts_summary_rows.extend(ts_result["summary_rows"])
+        ts_run_rows.extend(ts_result["run_rows"])
+
+        summary_doc["groups"][group_key] = {
+            "label": group_cfg["label"],
+            "grasp": {
+                "best_alpha": best_grasp["alpha"],
+                "best_avg_dev_pct": best_grasp["avg_dev_pct"],
+            },
+            "ts": {
+                "best_alpha": ts_result["best_alpha"],
+                "best_tenure": ts_result["best_tenure"],
+                "best_avg_dev_pct": ts_result["best_avg_dev_pct"],
+            },
+        }
+
+        if CALIBRATION_MODE == "sequential":
+            summary_doc["groups"][group_key]["ts"]["alpha_sweep"] = {
+                "tenure": ts_result["phase_best_rows"]["alpha_sweep"]["tenure"],
+                "best_alpha": ts_result["phase_best_rows"]["alpha_sweep"]["alpha"],
+                "best_avg_dev_pct": ts_result["phase_best_rows"]["alpha_sweep"]["avg_dev_pct"],
+            }
+            summary_doc["groups"][group_key]["ts"]["tenure_sweep"] = {
+                "alpha": ts_result["phase_best_rows"]["tenure_sweep"]["alpha"],
+                "best_tenure": ts_result["phase_best_rows"]["tenure_sweep"]["tenure"],
+                "best_avg_dev_pct": ts_result["phase_best_rows"]["tenure_sweep"]["avg_dev_pct"],
+            }
+
+    write_csv(
+        GRASP_DETAIL_CSV,
+        grasp_detail_rows,
+        ["group", "instance", "alpha", "avg_of", "best_of", "worst_of", "std_of", "avg_time_s", "avg_dev_pct"],
+    )
+    write_csv(
+        GRASP_SUMMARY_CSV,
+        grasp_summary_rows,
+        ["group", "alpha", "avg_dev_pct", "mean_avg_of", "mean_time_s"],
+    )
+    write_csv(
+        GRASP_RUNS_CSV,
+        grasp_run_rows,
+        ["group", "instance", "alpha", "run", "seed", "of", "elapsed_s"],
+    )
+    write_csv(
+        TS_DETAIL_CSV,
+        ts_detail_rows,
+        ["group", "phase", "instance", "alpha", "tenure", "avg_of", "best_of", "worst_of", "std_of", "avg_time_s", "avg_dev_pct"],
+    )
+    write_csv(
+        TS_SUMMARY_CSV,
+        ts_summary_rows,
+        ["group", "phase", "alpha", "tenure", "avg_dev_pct", "mean_avg_of", "mean_time_s"],
+    )
+    write_csv(
+        TS_RUNS_CSV,
+        ts_run_rows,
+        ["group", "phase", "instance", "alpha", "tenure", "run", "seed", "of", "elapsed_s"],
+    )
+
+    os.makedirs(os.path.dirname(SUMMARY_JSON), exist_ok=True)
+    with open(SUMMARY_JSON, "w") as handle:
+        json.dump(summary_doc, handle, indent=2)
+
+    print("\n" + "=" * 72)
     print("  FINAL CALIBRATION RECOMMENDATION")
-    print("="*60)
-    print(f"  Small instances -> best tabu_tenure = {best_small}  (dev={devs_small[best_small]:.4f}%)")
-    print(f"  Large instances -> best tabu_tenure = {best_large}  (dev={devs_large[best_large]:.4f}%)")
-    print("="*60)
-
-    # ---------------------- #
-    # EXPORT CALIBRATION CSV #
-    # ---------------------- #
-    all_rows = rows_small + rows_large
-    csv_path = "experiments/calibration_results.csv"
-    os.makedirs(os.path.dirname(csv_path), exist_ok=True)
-    fieldnames = ["group", "tenure", "instance", "avg_of", "avg_time_s"]
-    with open(csv_path, "w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(all_rows)
-    print(f"\n  Raw calibration data saved to: {csv_path}")
+    print("=" * 72)
+    for group_key, group_info in summary_doc["groups"].items():
+        print(
+            f"  {group_key}: GRASP alpha={group_info['grasp']['best_alpha']}  |  "
+            f"GRASP+TS alpha={group_info['ts']['best_alpha']}  "
+            f"tenure={group_info['ts']['best_tenure']}"
+        )
+    print(f"\n  GRASP detail CSV   -> {GRASP_DETAIL_CSV}")
+    print(f"  GRASP summary CSV  -> {GRASP_SUMMARY_CSV}")
+    print(f"  GRASP runs CSV     -> {GRASP_RUNS_CSV}")
+    print(f"  TS detail CSV      -> {TS_DETAIL_CSV}")
+    print(f"  TS summary CSV     -> {TS_SUMMARY_CSV}")
+    print(f"  TS runs CSV        -> {TS_RUNS_CSV}")
+    print(f"  Summary JSON       -> {SUMMARY_JSON}")
+    print("=" * 72)
