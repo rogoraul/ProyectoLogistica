@@ -110,7 +110,7 @@ At `n = 100` with a 30-second budget, the best-improvement local search already 
 
 | Metric | GRASP | GRASP+TS |
 | ------ | ----- | -------- |
-| Avg dev% | 0.5196% | 0.8401% |
+| Avg dev% | 0.5200% | 0.8443% |
 | Mean std | 20.57 | 41.69 |
 | Instances reaching BK at least once (out of 9) | 4 | 5 |
 | Paired run wins (out of 45) | **30** | 15 |
