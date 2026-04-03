@@ -31,6 +31,7 @@ def execute(inst, alpha, time_limit=30, tabu_tenure=10, max_iter=5000,
     start_time = time.time()
     best = None
     iteration = 0
+    history = []   # [(iteration, elapsed_s, best_of)] — appended each time best improves
 
     while time.time() - start_time < time_limit:
         iteration += 1
@@ -62,5 +63,7 @@ def execute(inst, alpha, time_limit=30, tabu_tenure=10, max_iter=5000,
 
         if best is None or sol['of'] > best['of']:
             best = sol
+            history.append((iteration, round(time.time() - start_time, 3), round(best['of'], 2)))
 
+    best['history'] = history
     return best

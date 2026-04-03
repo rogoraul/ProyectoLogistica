@@ -48,7 +48,7 @@ def improve(sol, tabu_tenure=10, max_iter=5000, time_limit=30,
         if dynamic:
             current_tenure = random.randint(tenure_min, tenure_max)
 
-        v_out, of_var_out, v_in, of_var_in = selectInterchange(sol, tabu_list)
+        v_out, of_var_out, v_in, of_var_in = selectInterchange(sol, tabu_list, best_sol['of'])
 
         if v_out == -1:
             break
@@ -87,7 +87,7 @@ def improve(sol, tabu_tenure=10, max_iter=5000, time_limit=30,
 # SELECT INTERCHANGE   #
 # -------------------- #
 
-def selectInterchange(sol, tabu_list):
+def selectInterchange(sol, tabu_list, best_of):
     n = sol['instance']['n']
     best_delta = None
     best_v_out = -1
@@ -95,20 +95,41 @@ def selectInterchange(sol, tabu_list):
     best_of_var_out = 0
     best_of_var_in = 0
 
+    # Aspiration: best tabu move that would exceed best_of
+    asp_delta = None
+    asp_v_out = -1
+    asp_v_in = -1
+    asp_of_var_out = 0
+    asp_of_var_in = 0
+
     for v_out in sol['sol']:
         of_var_out = solution.distanceToSol(sol, v_out)
         for v_in in range(n):
             if solution.contains(sol, v_in):
                 continue
-            if v_in in tabu_list:
-                continue
             of_var_in = solution.distanceToSol(sol, v_in, without=v_out)
             delta = of_var_in - of_var_out
+
+            if v_in in tabu_list:
+                # Aspiration criterion: override tabu status if move beats best known
+                if sol['of'] + delta > best_of:
+                    if asp_delta is None or delta > asp_delta:
+                        asp_delta = delta
+                        asp_v_out = v_out
+                        asp_v_in = v_in
+                        asp_of_var_out = round(of_var_out, 2)
+                        asp_of_var_in = round(of_var_in, 2)
+                continue
+
             if best_delta is None or delta > best_delta:
                 best_delta = delta
                 best_v_out = v_out
                 best_v_in = v_in
                 best_of_var_out = round(of_var_out, 2)
                 best_of_var_in = round(of_var_in, 2)
+
+    # Prefer aspiration move only if it outperforms the best non-tabu move
+    if asp_delta is not None and (best_delta is None or asp_delta > best_delta):
+        return asp_v_out, asp_of_var_out, asp_v_in, asp_of_var_in
 
     return best_v_out, best_of_var_out, best_v_in, best_of_var_in

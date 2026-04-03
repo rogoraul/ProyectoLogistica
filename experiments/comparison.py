@@ -26,7 +26,8 @@ TABU_TENURE_LARGE = 25   # calibrated: best dev=0.0969% on n=500 instances
 
 RUNS_PER_INSTANCE = 5    # independent runs per algorithm per instance
 
-RESULTS_CSV = "experiments/comparison_results.csv"
+RESULTS_CSV     = "experiments/comparison_results.csv"
+RUNS_CSV        = "experiments/comparison_runs.csv"    # one row per individual run
 
 # All 15 instances - edit filenames to match yours exactly
 ALL_INSTANCES = [
@@ -71,17 +72,21 @@ def run_algorithm(algo_fn, inst, runs, **kwargs):
 
 def summarise(run_results, best_known):
     """
-    From a list of (of, time) compute avg_of, avg_time, dev%, n_best.
+    From a list of (of, time) compute descriptive stats and dev%.
     best_known is the best OF across both algorithms for this instance.
     """
     of_vals   = [r[0] for r in run_results]
     time_vals = [r[1] for r in run_results]
-    avg_of    = round(sum(of_vals) / len(of_vals), 2)
-    avg_time  = round(sum(time_vals) / len(time_vals), 2)
+    n         = len(of_vals)
+    avg_of    = round(sum(of_vals) / n, 2)
+    avg_time  = round(sum(time_vals) / n, 2)
     best_run  = max(of_vals)
+    worst_run = min(of_vals)
+    variance  = sum((x - avg_of) ** 2 for x in of_vals) / (n - 1) if n > 1 else 0.0
+    std_of    = round(variance ** 0.5, 4)
     dev_pct   = round((best_known - avg_of) / best_known * 100, 4) if best_known > 0 else 0.0
     n_best    = sum(1 for v in of_vals if abs(v - best_known) < 1e-6)
-    return avg_of, best_run, avg_time, dev_pct, n_best
+    return avg_of, best_run, worst_run, std_of, avg_time, dev_pct, n_best
 
 
 # ---------- #
@@ -89,7 +94,8 @@ def summarise(run_results, best_known):
 # ---------- #
 
 def compare():
-    rows = []   # will be written to CSV
+    rows = []       # aggregate rows — one per instance
+    run_rows = []   # per-run rows for Wilcoxon-ready output
 
     print(f"\n{'='*70}")
     print(f"  COMPARISON: GRASP vs GRASP+TS  |  time_limit={TIME_LIMIT}s  |  runs={RUNS_PER_INSTANCE}")
@@ -137,11 +143,11 @@ def compare():
             max(r[0] for r in ts_results)
         )
 
-        g_avg_of, g_best, g_avg_t, g_dev, g_nbest = summarise(grasp_results, best_known)
-        t_avg_of, t_best, t_avg_t, t_dev, t_nbest = summarise(ts_results,   best_known)
+        g_avg_of, g_best, g_worst, g_std, g_avg_t, g_dev, g_nbest = summarise(grasp_results, best_known)
+        t_avg_of, t_best, t_worst, t_std, t_avg_t, t_dev, t_nbest = summarise(ts_results,   best_known)
 
-        print(f"    GRASP   : avg={g_avg_of}  best={g_best}  dev={g_dev:.4f}%  #best={g_nbest}  time={g_avg_t}s")
-        print(f"    GRASP+TS: avg={t_avg_of}  best={t_best}  dev={t_dev:.4f}%  #best={t_nbest}  time={t_avg_t}s")
+        print(f"    GRASP   : avg={g_avg_of}  best={g_best}  worst={g_worst}  std={g_std}  dev={g_dev:.4f}%  #best={g_nbest}  time={g_avg_t}s")
+        print(f"    GRASP+TS: avg={t_avg_of}  best={t_best}  worst={t_worst}  std={t_std}  dev={t_dev:.4f}%  #best={t_nbest}  time={t_avg_t}s")
         print()
 
         rows.append({
@@ -150,16 +156,28 @@ def compare():
             "best_known":      best_known,
             "grasp_avg_of":    g_avg_of,
             "grasp_best":      g_best,
+            "grasp_worst":     g_worst,
+            "grasp_std":       g_std,
             "grasp_dev_pct":   g_dev,
             "grasp_nbest":     g_nbest,
             "grasp_avg_time":  g_avg_t,
             "ts_avg_of":       t_avg_of,
             "ts_best":         t_best,
+            "ts_worst":        t_worst,
+            "ts_std":          t_std,
             "ts_dev_pct":      t_dev,
             "ts_nbest":        t_nbest,
             "ts_avg_time":     t_avg_t,
             "tabu_tenure":     tenure,
         })
+
+        # Collect per-run rows (paired by seed for Wilcoxon test)
+        for r_idx, (g_of, g_t) in enumerate(grasp_results):
+            run_rows.append({"instance": fname, "group": group, "algorithm": "GRASP",
+                             "run": r_idx, "seed": RANDOM_SEED + r_idx, "of": g_of, "elapsed_s": g_t})
+        for r_idx, (t_of, t_t) in enumerate(ts_results):
+            run_rows.append({"instance": fname, "group": group, "algorithm": "GRASP+TS",
+                             "run": r_idx, "seed": RANDOM_SEED + r_idx, "of": t_of, "elapsed_s": t_t})
 
     # --------------- #
     # SUMMARY TABLE   #
@@ -211,6 +229,14 @@ def compare():
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(rows)
+
+    if run_rows:
+        run_fieldnames = ["instance", "group", "algorithm", "run", "seed", "of", "elapsed_s"]
+        with open(RUNS_CSV, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=run_fieldnames)
+            writer.writeheader()
+            writer.writerows(run_rows)
+        print(f"  Per-run data saved to: {RUNS_CSV}")
 
     print(f"\n  Results saved to: {RESULTS_CSV}")
     print(f"{'='*70}\n")
