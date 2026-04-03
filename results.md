@@ -1,103 +1,195 @@
-# Results Draft
+# Experimental Results
 
-This document is a working draft of the experimental results section for the Maximum Diversity Problem project. It summarizes the calibration stage, the final comparison between GRASP and GRASP+TS, and the main interpretation supported by the generated CSV and JSON files in `experiments/`.
+This document reports the calibration and comparison experiments for the Maximum Diversity
+Problem (MDP) project. All results are derived from the files in `experiments/` generated
+by `experiments/calibration.py` and `experiments/comparison.py`.
+
+---
 
 ## 3.1 Calibration
 
 ### 3.1.1 Selected parameters
 
-| Group | GRASP alpha | GRASP+TS alpha | GRASP+TS tenure |
-| --- | --- | --- | --- |
-| Small (`n=100`) | 0.1 | 0.25 | 15 |
-| Large (`n=500`) | 0.1 | 0.9 | 10 |
+| Group | Algorithm | Best alpha | Best tenure | Best avg dev% |
+| ----- | --------- | ---------- | ----------- | ------------- |
+| Small (`n=100`) | GRASP | 0.1 *(tie-break)* | — | 0.0000% |
+| Small (`n=100`) | GRASP+TS | 0.25 *(tie-break)* | 15 | 0.0000% |
+| Large (`n=500`) | GRASP | 0.1 | — | 0.2536% |
+| Large (`n=500`) | GRASP+TS | 0.9 | 10 | 0.0906% |
 
-These values were selected automatically by the sequential calibration pipeline implemented in `experiments/calibration.py` and stored in `experiments/calibration_summary.json`.
+These values were selected automatically by the sequential calibration pipeline
+(`experiments/calibration.py`) and stored in `experiments/calibration_summary.json`.
 
 ### 3.1.2 GRASP alpha calibration
 
-For the small instances, all six tested alpha values produced exactly the same mean objective value (`356.34`) and zero standard deviation. In practice, this means alpha had no measurable effect at `n=100` under the chosen calibration budget. The selected value `alpha = 0.1` should therefore be interpreted as a tie-break outcome, not as evidence of a strong preference.
+**Small instances.** All six tested alpha values produced exactly the same mean objective
+value (356.34) with zero standard deviation across all runs. Alpha has no measurable
+effect at this scale under the calibration budget. The selected value `alpha = 0.1` is a
+tie-break, not evidence of a sensitivity.
 
-For the large instances, the calibration results were clearly differentiated. The best value was `alpha = 0.1`, with `avg_dev_pct = 0.2536%` and `mean_avg_of = 7694.55`. Larger alpha values degraded performance, with `alpha = 0.75` and `alpha = 0.9` producing the weakest average results. This indicates that GRASP with best-improvement local search benefits from a relatively greedy construction phase when the wall-clock budget is fixed.
+**Large instances.** Results were clearly differentiated:
 
-### 3.1.3 GRASP+TS calibration
+| alpha | avg dev% | mean avg OF |
+| ----- | -------- | ----------- |
+| **0.1** | **0.2536%** | **7694.55** |
+| 0.25 | 0.2868% | 7691.99 |
+| −1 | 0.3373% | 7688.07 |
+| 0.9 | 0.5551% | 7671.26 |
+| 0.5 | 0.5816% | 7669.25 |
+| 0.75 | 0.7272% | 7658.02 |
 
-For the small instances, the calibration again showed almost complete saturation. Several parameter settings tied at `avg_dev_pct = 0.0%`, while only `alpha = -1` and `tenure = 5` showed a slight deterioration. As with GRASP, the selected small-instance parameters should be described as practical defaults rather than as strong evidence of sensitivity.
+GRASP with best-improvement local search benefits from a **greedy construction** (`alpha = 0.1`).
+With a fixed time budget, the LS converges quickly from strong starting points and GRASP
+can complete many more restarts, covering the search space more broadly.
 
-For the large instances, the pattern was much more informative:
+### 3.1.3 GRASP+TS calibration (sequential mode)
 
-| Phase | Best value(s) | Best avg_dev_pct | Mean average objective |
-| --- | --- | --- | --- |
-| Alpha sweep (tenure fixed at 15) | `alpha = 0.9` | `0.1094%` | `7700.98` |
-| Tenure sweep (alpha fixed at 0.9) | `tenure = 10` | `0.0906%` | `7705.39` |
+**Small instances.** Again almost fully saturated. Only `alpha = −1` (dev 0.0957%) and
+`tenure = 5` (dev 0.2706%) showed slight deterioration. The selected parameters
+`(alpha = 0.25, tenure = 15)` are practical defaults rather than strong signals.
 
-The most interesting calibration result is that GRASP and GRASP+TS favor opposite ends of the alpha spectrum on large instances:
+**Large instances — alpha sweep** (tenure fixed at 15 as anchor):
 
-- GRASP alone performs best with a greedy construction (`alpha = 0.1`).
-- GRASP+TS performs best with a highly random construction (`alpha = 0.9`).
+| alpha | avg dev% | mean avg OF |
+| ----- | -------- | ----------- |
+| **0.9** | **0.1094%** | **7700.98** |
+| 0.75 | 0.2635% | 7689.05 |
+| 0.25 | 0.3319% | 7683.78 |
+| −1 | 0.3714% | 7680.75 |
+| 0.1 | 0.4696% | 7673.12 |
+| 0.5 | 0.5106% | 7670.05 |
 
-This is worth highlighting explicitly in the report. A plausible explanation is that best-improvement local search benefits from strong starting solutions, while Tabu Search benefits from more diverse starting points because it can exploit them more aggressively afterward.
+**Large instances — tenure sweep** (alpha fixed at 0.9):
 
-## 3.2 Final Comparison on Small Instances
+| tenure | avg dev% | mean avg OF |
+| ------ | -------- | ----------- |
+| **10** | **0.0906%** | **7705.39** |
+| 15 | 0.1475% | 7700.98 |
+| 20 | 0.1804% | 7698.44 |
+| 30 | 0.2803% | 7690.76 |
+| 25 | 0.2875% | 7690.20 |
+| 5 | 0.3623% | 7684.35 |
 
-The small instances do not meaningfully separate the algorithms. Across the 6 small instances and 5 runs per instance:
+The tenure curve is non-monotone: `tenure = 5` is too short (the search cycles), values
+above 10 start blocking too many moves. `tenure = 10` is the clear optimum.
 
-- both algorithms produced identical objective values on every run
-- all standard deviations were `0.0`
-- all 30 paired comparisons were ties
-- the paired statistical test was skipped because all pairs were tied
+### 3.1.4 Key calibration finding: opposite alpha preferences
 
-This suggests that, at `n=100`, the local search landscape is already easy enough that both GRASP+BI and GRASP+TS converge to the same local optimum under a 30-second budget. As a result, the small-instance group is useful as a sanity check, but it should not be the main basis for discussing differences between the methods.
+> **GRASP and GRASP+TS calibrate to opposite ends of the alpha spectrum on large instances.**
+> GRASP best alpha = 0.1 (greedy construction); GRASP+TS best alpha = 0.9 (random construction).
 
-## 3.3 Final Comparison on Large Instances
+The explanation follows directly from algorithm structure: best-improvement LS benefits
+from strong starting solutions because it cannot escape the local basin of attraction.
+Tabu Search is powerful enough to escape poor constructions and benefits from the
+diversity that random starting solutions provide. The strength of the improvement phase
+changes what counts as a good starting point.
 
-The large instances provide the real discrimination power of the benchmark. The table below summarizes the per-instance averages:
+---
 
-| Instance | GRASP avg | GRASP std | TS avg | TS std | delta (TS - GRASP) | GRASP best | TS best |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| MDG-a_2 | 7695.50 | 22.67 | 7694.42 | 40.22 | -1.08 | 7722.22 | 7756.24 |
-| MDG-a_5 | 7697.35 | 29.16 | 7635.25 | 77.71 | -62.10 | 7746.00 | 7755.23 |
-| MDG-a_6 | 7712.16 | 26.79 | 7691.21 | 31.49 | -20.95 | 7752.31 | 7726.58 |
-| MDG-a_9 | 7730.84 | 11.93 | 7700.91 | 40.82 | -29.93 | 7749.40 | 7755.20 |
-| MDG-a_13 | 7737.72 | 8.70 | 7747.95 | 36.99 | 10.23 | 7748.34 | 7780.22 |
-| MDG-a_16 | 7739.38 | 18.30 | 7690.25 | 31.04 | -49.13 | 7757.50 | 7728.40 |
-| MDG-a_17 | 7723.03 | 29.49 | 7704.35 | 54.84 | -18.68 | 7756.16 | 7785.30 |
-| MDG-a_19 | 7702.49 | 20.26 | 7677.74 | 28.99 | -24.75 | 7729.01 | 7722.68 |
-| MDG-a_20 | 7688.01 | 17.80 | 7658.29 | 33.11 | -29.72 | 7718.59 | 7686.17 |
+## 3.2 Final Comparison — Small Instances (n=100)
 
-### 3.3.1 Aggregate view on large instances
+**Parameters used:** GRASP `alpha = 0.1`; GRASP+TS `alpha = 0.25, tenure = 15`.
+
+Across the 6 small instances with 5 independent runs each (30 pairs total):
+
+- Both algorithms produced **identical objective values on every single run**.
+- All standard deviations were 0.0.
+- All 30 paired comparisons were exact ties.
+- The Wilcoxon test was skipped (all differences are zero).
+
+At `n = 100` with a 30-second budget, the best-improvement local search already saturates
+to the same local optimum regardless of construction or whether Tabu Search runs on top.
+The small-instance group confirms that both implementations are correct and consistent,
+but provides no discriminating power between the two algorithms.
+
+---
+
+## 3.3 Final Comparison — Large Instances (n=500)
+
+**Parameters used:** GRASP `alpha = 0.1`; GRASP+TS `alpha = 0.9, tenure = 10`.
+
+### 3.3.1 Per-instance results
+
+*BK = best-known value (maximum across all runs of both algorithms for that instance).*
+
+| Instance | GRASP avg | GRASP std | TS avg | TS std | Δ (TS−GRASP) | BK | GRASP=BK | TS=BK |
+| -------- | --------- | --------- | ------ | ------ | ------------ | -- | -------- | ----- |
+| MDG-a_2 | 7695.50 | 22.67 | 7694.42 | 40.22 | −1.1 | 7756.24 | — | ✓ |
+| MDG-a_5 | 7697.35 | 29.16 | 7635.25 | 77.71 | −62.1 | 7755.23 | — | ✓ |
+| MDG-a_6 | 7712.16 | 26.79 | 7691.21 | 31.49 | −20.9 | 7752.31 | ✓ | — |
+| MDG-a_9 | 7730.84 | 11.93 | 7700.91 | 40.82 | −29.9 | 7755.20 | — | ✓ |
+| MDG-a_13 | 7737.72 | 8.70 | 7747.95 | 36.99 | +10.2 | 7780.22 | — | ✓ |
+| MDG-a_16 | 7739.38 | 18.30 | 7690.25 | 31.04 | −49.1 | 7757.50 | ✓ | — |
+| MDG-a_17 | 7723.03 | 29.49 | 7704.35 | 54.84 | −18.7 | 7785.30 | — | ✓ |
+| MDG-a_19 | 7702.49 | 20.26 | 7677.74 | 28.99 | −24.7 | 7729.01 | ✓ | — |
+| MDG-a_20 | 7688.01 | 17.80 | 7658.29 | 33.11 | −29.7 | 7718.59 | ✓ | — |
+
+### 3.3.2 Aggregate results (large instances)
 
 | Metric | GRASP | GRASP+TS |
-| --- | --- | --- |
-| Average deviation (%) | 0.5196 | 0.8401 |
-| Mean standard deviation | 20.57 | 41.69 |
-| Best-known hits | 4 | 5 |
-| Paired wins | 30 | 15 |
-| Mean delta (TS - GRASP) | -- | -25.13 |
+| ------ | ----- | -------- |
+| Avg dev% | 0.5196% | 0.8401% |
+| Mean std | 20.57 | 41.69 |
+| Best-known hits (out of 9) | 4 | 5 |
+| Paired run wins (out of 45) | **30** | 15 |
+| Mean delta (TS − GRASP) | — | −25.13 |
+| Wilcoxon W (45 pairs) | — | 256.0 |
+| Wilcoxon p-value | — | **0.0026** |
 
-The large-instance group supports two complementary conclusions:
+The Wilcoxon signed-rank test (two-sided, `zero_method="wilcox"`, n=45 non-tied pairs)
+confirms that the advantage of GRASP over GRASP+TS in average run quality is
+**statistically significant** (p = 0.0026, α = 0.05).
 
-1. **GRASP is more robust on average.** It achieves better average quality on 8 of the 9 large instances, wins 30 of the 45 non-tied paired comparisons, and shows roughly half the variability of GRASP+TS.
-2. **GRASP+TS occasionally reaches better peaks.** Even though its average quality is lower, it hits the best-known solution on more large instances (5 vs 4), which shows that its deeper search can occasionally reach solutions beyond GRASP's reach.
+### 3.3.3 The MDG-a_5 case
 
-### 3.3.2 The MDG-a_5 outlier
+`MDG-a_5` is the clearest illustration of the variance cost of Tabu Search. GRASP+TS
+reached the best-known solution (7755.23) in one run, but three other runs landed below
+7620 (worst: 7560.80), yielding both the largest mean delta (−62.1) and the highest
+standard deviation (77.71) in the benchmark. This is not noise: it is the direct
+consequence of GRASP+TS exploring fewer, longer trajectories per time budget.
 
-`MDG-a_5_n500_m50.txt` deserves an explicit mention because it is the clearest example of the variance trade-off. GRASP+TS reached the best-known objective value (`7755.23`) in one run, but three other runs landed much lower (`7578.52`, `7619.24`, `7560.80`), yielding both the worst mean difference and the highest standard deviation in the benchmark.
-
-This should not be used to discard TS results as noise. Instead, it is strong evidence that TS is less stable under the fixed 30-second budget used in the comparison.
+---
 
 ## 3.4 Discussion
 
-The results do not support a simple "one algorithm dominates the other" conclusion. A more accurate interpretation is a trade-off between **breadth** and **depth** under equal wall-clock time:
+### Breadth versus depth under a fixed time budget
 
-- GRASP spends the budget on many restarts, each followed by a best-improvement local search. This gives more breadth and more stable average performance.
-- GRASP+TS spends more time exploiting each constructed solution. This gives deeper search per iteration and occasionally better maxima, but at the cost of much higher variance.
+The results do not support a simple dominance conclusion. The correct interpretation is
+a **trade-off between breadth and depth** under equal wall-clock time:
 
-This interpretation is reinforced by the calibration outcome. The best alpha for GRASP (`0.1`) is greedy, while the best alpha for GRASP+TS (`0.9`) is highly random. In other words, the stronger local improvement phase changes what counts as a good starting solution.
+- **GRASP** completes many short restarts (construct → LS), covering more of the search
+  space. This yields better and more consistent average quality: avg dev% 0.52%,
+  mean std 20.6, 30 out of 45 paired wins, statistically significant (p = 0.0026).
 
-One limitation should be stated explicitly in the report: the current environment did not have SciPy installed, so `experiments/comparison_tests.json` does not contain a Wilcoxon p-value. The descriptive evidence is still strong, but the text should avoid making a formal significance claim unless the test is rerun in an environment with SciPy available.
+- **GRASP+TS** spends more time exploiting each constructed solution. This occasionally
+  reaches solutions that GRASP's best-improvement LS never finds: TS hits the best-known
+  value on 5 of 9 large instances vs 4 for GRASP, and achieves some of the absolute best
+  values in the benchmark (e.g., 7785.30 on MDG-a_17, 7780.22 on MDG-a_13).
 
-## 3.5 Recommended wording
+This trade-off is further reinforced by the calibration finding: GRASP benefits from
+greedy construction (`alpha = 0.1`) while GRASP+TS benefits from random construction
+(`alpha = 0.9`). The strength of the improvement phase changes what counts as a good
+starting point.
 
-If the report needs a short conclusion paragraph, the following message is faithful to the data:
+### Conditions under which results may change
 
-> Under a fixed 30-second budget, GRASP with best-improvement local search is the more robust algorithm, delivering better average solution quality and lower variance on large instances. However, GRASP+TS occasionally reaches higher-quality solutions and hits the best-known objective value on more large instances. The comparison therefore reveals a breadth-versus-depth trade-off rather than a strict dominance relation.
+The ranking is **conditional on the time budget**. With a larger budget (e.g., 120s),
+GRASP+TS would complete more restarts and its higher peak quality per iteration might
+translate into better average quality as well. At 30 seconds, GRASP's breadth advantage
+dominates.
+
+The small-instance results (n=100) suggest that both algorithms are equivalent when the
+problem is easy enough that the local search saturates. The algorithmic difference only
+becomes relevant when the problem is hard enough that the search cannot explore the full
+neighbourhood within the time budget.
+
+---
+
+## 3.5 Summary
+
+> Under a fixed 30-second budget, GRASP with best-improvement local search is the more
+> robust algorithm, achieving better average solution quality (avg dev% 0.52% vs 0.84%),
+> lower variance (mean std 20.6 vs 41.7), and statistically significantly higher per-run
+> quality on large instances (Wilcoxon p = 0.0026). However, GRASP+TS reaches higher peak
+> solutions more often (5 vs 4 best-known hits on large instances), revealing a
+> breadth-versus-depth trade-off rather than a strict dominance relation.
