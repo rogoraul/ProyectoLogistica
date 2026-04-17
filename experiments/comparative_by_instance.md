@@ -190,12 +190,12 @@ Generado automáticamente a partir de los CSV en `experiments`.
 
 | Alpha | Mean (avg_of) | Std | Best | Worst | AvgTime(s) | AvgDevPct | AbsDevFromBest |
 |---:|---:|---:|---:|---:|---:|---:|---:|
-
+| 0.1 | 7,739.38 | 18.2951 | 7,757.50 | 7,713.12 | 30.250 | 0.2336 | 18.12 |
 ### GRASP+TS — resultados por `alpha` / `tenure`
 
 | Alpha | Tenure | Mean (avg_of) | Std | Best | Worst | AvgTime(s) | AvgDevPct | AbsDevFromBest |
 |---:|---:|---:|---:|---:|---:|---:|---:|---:|
-
+| 0.9 | 10 | 7,690.25 | 31.0416 | 7,728.40 | 7,653.24 | 30.019 | 0.8669 | 67.25 |
 ### Configuración utilizada en `comparison_results.csv`
 
 - GRASP alpha: 0.1 → mean: 7,739.380
@@ -204,9 +204,9 @@ Generado automáticamente a partir de los CSV en `experiments`.
 ### Resumen comparativo
 
 - Best known: 7,757.500
-- No hay datos de GRASP para esta instancia.
-- No hay datos de GRASP+TS para esta instancia.
-- Conclusión: Datos insuficientes para comparar proximidad al best_known.
+- Mejor GRASP (por proximidad a best_known): `alpha=0.1` → mean=7,739.38, abs_dev=18.12
+- Mejor GRASP+TS: `alpha=0.9`, `tenure=10` → mean=7,690.25, abs_dev=67.25
+- Conclusión: GRASP está más cerca del `best_known` para esta instancia.
 
 ---
 
@@ -218,12 +218,12 @@ Generado automáticamente a partir de los CSV en `experiments`.
 
 | Alpha | Mean (avg_of) | Std | Best | Worst | AvgTime(s) | AvgDevPct | AbsDevFromBest |
 |---:|---:|---:|---:|---:|---:|---:|---:|
-
+| 0.1 | 7,723.03 | 29.4929 | 7,756.16 | 7,692.77 | 30.328 | 0.7998 | 62.27 |
 ### GRASP+TS — resultados por `alpha` / `tenure`
 
 | Alpha | Tenure | Mean (avg_of) | Std | Best | Worst | AvgTime(s) | AvgDevPct | AbsDevFromBest |
 |---:|---:|---:|---:|---:|---:|---:|---:|---:|
-
+| 0.9 | 10 | 7,704.35 | 54.8396 | 7,785.30 | 7,633.16 | 30.025 | 1.0398 | 80.95 |
 ### Configuración utilizada en `comparison_results.csv`
 
 - GRASP alpha: 0.1 → mean: 7,723.030
@@ -232,9 +232,9 @@ Generado automáticamente a partir de los CSV en `experiments`.
 ### Resumen comparativo
 
 - Best known: 7,785.300
-- No hay datos de GRASP para esta instancia.
-- No hay datos de GRASP+TS para esta instancia.
-- Conclusión: Datos insuficientes para comparar proximidad al best_known.
+- Mejor GRASP (por proximidad a best_known): `alpha=0.1` → mean=7,723.03, abs_dev=62.27
+- Mejor GRASP+TS: `alpha=0.9`, `tenure=10` → mean=7,704.35, abs_dev=80.95
+- Conclusión: GRASP está más cerca del `best_known` para esta instancia.
 
 ---
 
@@ -246,12 +246,12 @@ Generado automáticamente a partir de los CSV en `experiments`.
 
 | Alpha | Mean (avg_of) | Std | Best | Worst | AvgTime(s) | AvgDevPct | AbsDevFromBest |
 |---:|---:|---:|---:|---:|---:|---:|---:|
-
+| 0.1 | 7,702.49 | 20.2550 | 7,729.01 | 7,675.00 | 30.345 | 0.3431 | 26.52 |
 ### GRASP+TS — resultados por `alpha` / `tenure`
 
 | Alpha | Tenure | Mean (avg_of) | Std | Best | Worst | AvgTime(s) | AvgDevPct | AbsDevFromBest |
 |---:|---:|---:|---:|---:|---:|---:|---:|---:|
-
+| 0.9 | 10 | 7,677.74 | 28.9908 | 7,722.68 | 7,645.06 | 30.026 | 0.6633 | 51.27 |
 ### Configuración utilizada en `comparison_results.csv`
 
 - GRASP alpha: 0.1 → mean: 7,702.490
@@ -260,9 +260,9 @@ Generado automáticamente a partir de los CSV en `experiments`.
 ### Resumen comparativo
 
 - Best known: 7,729.010
-- No hay datos de GRASP para esta instancia.
-- No hay datos de GRASP+TS para esta instancia.
-- Conclusión: Datos insuficientes para comparar proximidad al best_known.
+- Mejor GRASP (por proximidad a best_known): `alpha=0.1` → mean=7,702.49, abs_dev=26.52
+- Mejor GRASP+TS: `alpha=0.9`, `tenure=10` → mean=7,677.74, abs_dev=51.27
+- Conclusión: GRASP está más cerca del `best_known` para esta instancia.
 
 ---
 
@@ -347,12 +347,12 @@ Generado automáticamente a partir de los CSV en `experiments`.
 
 | Alpha | Mean (avg_of) | Std | Best | Worst | AvgTime(s) | AvgDevPct | AbsDevFromBest |
 |---:|---:|---:|---:|---:|---:|---:|---:|
-
+| 0.1 | 7,688.01 | 17.8010 | 7,718.59 | 7,672.84 | 30.412 | 0.3962 | 30.58 |
 ### GRASP+TS — resultados por `alpha` / `tenure`
 
 | Alpha | Tenure | Mean (avg_of) | Std | Best | Worst | AvgTime(s) | AvgDevPct | AbsDevFromBest |
 |---:|---:|---:|---:|---:|---:|---:|---:|---:|
-
+| 0.9 | 10 | 7,658.29 | 33.1065 | 7,686.17 | 7,605.82 | 30.025 | 0.7812 | 60.30 |
 ### Configuración utilizada en `comparison_results.csv`
 
 - GRASP alpha: 0.1 → mean: 7,688.010
@@ -361,9 +361,9 @@ Generado automáticamente a partir de los CSV en `experiments`.
 ### Resumen comparativo
 
 - Best known: 7,718.590
-- No hay datos de GRASP para esta instancia.
-- No hay datos de GRASP+TS para esta instancia.
-- Conclusión: Datos insuficientes para comparar proximidad al best_known.
+- Mejor GRASP (por proximidad a best_known): `alpha=0.1` → mean=7,688.01, abs_dev=30.58
+- Mejor GRASP+TS: `alpha=0.9`, `tenure=10` → mean=7,658.29, abs_dev=60.30
+- Conclusión: GRASP está más cerca del `best_known` para esta instancia.
 
 ---
 
