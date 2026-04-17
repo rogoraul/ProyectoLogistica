@@ -1,32 +1,19 @@
-from structure import instance, solution
-from algorithms import grasp_timed, grasp_ts
 import random
+from algorithms import grasp_timed, grasp_ts
+from structure import instance, solution
 
 
 def executeInstance():
     path = "instances/MDG-a_2_n500_m50.txt"
     inst = instance.readInstance(path)
-
-    random.seed(1)
-
-    print("\n--- GRASP (alpha=0.1, time_limit=5s) ---")
-    sol_grasp = grasp_timed.execute(
-        inst,
-        alpha=0.1,
-        time_limit=5,
-    )
-    solution.printSolution(sol_grasp)
-
-    print("\n--- GRASP+TS (alpha=0.9, tenure=10, time_limit=5s) ---")
-    sol_ts = grasp_ts.execute(
-        inst,
-        alpha=0.9,
-        time_limit=5,
-        tabu_tenure=10,
-        max_iter=5000,
-    )
-    solution.printSolution(sol_ts)
+    sol = grasp_timed.execute(inst, 0.1, 5)
+    print("\nGRASP:")
+    solution.printSolution(sol)
+    sol = grasp_ts.execute(inst, 0.9, 5, 10, 5000)
+    print("\nGRASP+TS:")
+    solution.printSolution(sol)
 
 
 if __name__ == '__main__':
+    random.seed(1)
     executeInstance()
