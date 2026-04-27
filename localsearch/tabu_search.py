@@ -1,13 +1,16 @@
 import copy
+import csv
 import time
 from structure import solution
 
 
-def improve(sol, tabu_tenure=10, max_iter=5000, time_limit=30):
+def improve(sol, tabu_tenure=10, max_iter=5000, time_limit=30, evolution_csv_path=None):
     start = time.time()
     best_sol = copy.deepcopy(sol)
     tabu_list = []
     iter_no_improve = 0
+    evolution_rows = [] if evolution_csv_path is not None else None
+    iteration_number = 0
 
     while iter_no_improve < max_iter:
         if time.time() - start >= time_limit:
@@ -17,8 +20,10 @@ def improve(sol, tabu_tenure=10, max_iter=5000, time_limit=30):
         if v_out == -1:
             break
 
+        previous_of = sol['of']
         solution.removeFromSolution(sol, v_out, of_var_out)
         solution.addToSolution(sol, v_in, of_var_in)
+        iteration_number += 1
         tabu_list.append(v_out)
         if len(tabu_list) > tabu_tenure:
             tabu_list.pop(0)
@@ -29,9 +34,31 @@ def improve(sol, tabu_tenure=10, max_iter=5000, time_limit=30):
         else:
             iter_no_improve += 1
 
+        if evolution_rows is not None:
+            evolution_rows.append({
+                "iteration_number": iteration_number,
+                "current_solution_objective": round(sol['of'], 2),
+                "global_best_objective": round(best_sol['of'], 2),
+                "was_worsening_move": sol['of'] < previous_of,
+            })
+
     sol['sol'] = best_sol['sol']
     sol['of'] = best_sol['of']
     sol['instance'] = best_sol['instance']
+
+    if evolution_csv_path is not None:
+        with open(evolution_csv_path, "w", newline="") as f:
+            writer = csv.DictWriter(
+                f,
+                fieldnames=[
+                    "iteration_number",
+                    "current_solution_objective",
+                    "global_best_objective",
+                    "was_worsening_move",
+                ],
+            )
+            writer.writeheader()
+            writer.writerows(evolution_rows)
 
 
 def selectInterchange(sol, tabu_list, best_of):
