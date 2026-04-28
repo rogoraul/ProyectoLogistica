@@ -1,13 +1,21 @@
+# ------------------------- #
+# TABU SEARCH RAFA-APPROVED #
+# ------------------------- #
 import copy
 import csv
 import time
+import random
 from structure import solution
 
 
 def improve(sol, tabu_tenure=10, max_iter=5000, time_limit=30, evolution_csv_path=None):
     start = time.time()
     best_sol = copy.deepcopy(sol)
-    tabu_list = []
+    
+    # Listas FIFO para Control Bidireccional (como en las diapositivas)
+    tabu_out = []  # Nodos que han salido -> Prohibido que vuelvan a entrar
+    tabu_in = []   # Nodos que han entrado -> Prohibido que vuelvan a salir
+    
     iter_no_improve = 0
     evolution_rows = [] if evolution_csv_path is not None else None
     iteration_number = 0
@@ -16,7 +24,7 @@ def improve(sol, tabu_tenure=10, max_iter=5000, time_limit=30, evolution_csv_pat
         if time.time() - start >= time_limit:
             break
 
-        v_out, of_var_out, v_in, of_var_in = selectInterchange(sol, tabu_list, best_sol['of'])
+        v_out, of_var_out, v_in, of_var_in = selectInterchange(sol, tabu_out, tabu_in, best_sol['of'])
         if v_out == -1:
             break
 
@@ -24,9 +32,18 @@ def improve(sol, tabu_tenure=10, max_iter=5000, time_limit=30, evolution_csv_pat
         solution.removeFromSolution(sol, v_out, of_var_out)
         solution.addToSolution(sol, v_in, of_var_in)
         iteration_number += 1
-        tabu_list.append(v_out)
-        if len(tabu_list) > tabu_tenure:
-            tabu_list.pop(0)
+        
+        # Actualizamos la memoria a corto plazo
+        tabu_out.append(v_out)
+        tabu_in.append(v_in)
+        
+        # Tenencia Dinámica para evitar ciclos deterministas
+        current_tenure = random.randint(tabu_tenure, int(tabu_tenure * 1.5))
+        
+        # Ajustamos las listas FIFO al tamaño dinámico actual
+        while len(tabu_out) > current_tenure:
+            tabu_out.pop(0)
+            tabu_in.pop(0)
 
         if sol['of'] > best_sol['of']:
             best_sol = copy.deepcopy(sol)
@@ -61,7 +78,7 @@ def improve(sol, tabu_tenure=10, max_iter=5000, time_limit=30, evolution_csv_pat
             writer.writerows(evolution_rows)
 
 
-def selectInterchange(sol, tabu_list, best_of):
+def selectInterchange(sol, tabu_out, tabu_in, best_of):
     n = sol['instance']['n']
     best_delta = None
     best_v_out = -1
@@ -84,7 +101,13 @@ def selectInterchange(sol, tabu_list, best_of):
             of_var_in = solution.distanceToSol(sol, v_in, without=v_out)
             delta = of_var_in - of_var_out
 
-            if v_in in tabu_list:
+            # Control Bidireccional Legible:
+            # - ¿El nodo que quiero meter acaba de salir?
+            # - ¿El nodo que quiero sacar acaba de entrar?
+            is_tabu = (v_in in tabu_out) or (v_out in tabu_in)
+
+            if is_tabu:
+                # Criterio de Aspiración
                 if sol['of'] + delta > best_of:
                     if asp_delta is None or delta > asp_delta:
                         asp_delta = delta
