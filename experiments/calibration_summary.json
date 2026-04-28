@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-03T16:14:32",
+  "generated_at": "2026-04-28T12:59:44",
   "mode": "sequential",
   "time_limit_s": 10,
   "runs_per_config": 3,
@@ -28,17 +28,17 @@
         "best_avg_dev_pct": 0.0
       },
       "ts": {
-        "best_alpha": 0.25,
-        "best_tenure": 15,
+        "best_alpha": 0.1,
+        "best_tenure": 5,
         "best_avg_dev_pct": 0.0,
         "alpha_sweep": {
           "tenure": 15,
-          "best_alpha": 0.25,
+          "best_alpha": 0.1,
           "best_avg_dev_pct": 0.0
         },
         "tenure_sweep": {
-          "alpha": 0.25,
-          "best_tenure": 15,
+          "alpha": 0.1,
+          "best_tenure": 5,
           "best_avg_dev_pct": 0.0
         }
       }
@@ -47,21 +47,21 @@
       "label": "LARGE (n=500)",
       "grasp": {
         "best_alpha": 0.1,
-        "best_avg_dev_pct": 0.2536
+        "best_avg_dev_pct": 0.2142
       },
       "ts": {
-        "best_alpha": 0.9,
-        "best_tenure": 10,
-        "best_avg_dev_pct": 0.0906,
+        "best_alpha": 0.1,
+        "best_tenure": 15,
+        "best_avg_dev_pct": 0.0656,
         "alpha_sweep": {
           "tenure": 15,
-          "best_alpha": 0.9,
-          "best_avg_dev_pct": 0.1094
+          "best_alpha": 0.1,
+          "best_avg_dev_pct": 0.1515
         },
         "tenure_sweep": {
-          "alpha": 0.9,
-          "best_tenure": 10,
-          "best_avg_dev_pct": 0.0906
+          "alpha": 0.1,
+          "best_tenure": 15,
+          "best_avg_dev_pct": 0.0656
         }
       }
     }

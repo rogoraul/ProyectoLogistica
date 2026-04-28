@@ -1,15 +1,12 @@
 {
   "overall": {
     "n_pairs": 75,
-    "wins_grasp": 30,
-    "wins_ts": 15,
-    "ties": 30,
-    "mean_delta_ts_minus_grasp": -15.0763,
-    "status": "ok",
-    "test": "wilcoxon",
-    "non_zero_pairs": 45,
-    "statistic": 256.0,
-    "pvalue": 0.002628
+    "wins_grasp": 7,
+    "wins_ts": 37,
+    "ties": 31,
+    "mean_delta_ts_minus_grasp": 16.6072,
+    "status": "unavailable",
+    "reason": "scipy_not_installed"
   },
   "small": {
     "n_pairs": 30,
@@ -22,14 +19,11 @@
   },
   "large": {
     "n_pairs": 45,
-    "wins_grasp": 30,
-    "wins_ts": 15,
-    "ties": 0,
-    "mean_delta_ts_minus_grasp": -25.1271,
-    "status": "ok",
-    "test": "wilcoxon",
-    "non_zero_pairs": 45,
-    "statistic": 256.0,
-    "pvalue": 0.002628
+    "wins_grasp": 7,
+    "wins_ts": 37,
+    "ties": 1,
+    "mean_delta_ts_minus_grasp": 27.6787,
+    "status": "unavailable",
+    "reason": "scipy_not_installed"
   }
 }
