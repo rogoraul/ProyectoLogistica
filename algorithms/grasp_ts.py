@@ -23,22 +23,29 @@ def execute(
             break
 
         sol = cgrasp.construct(inst, alpha)
+        convergence_best = best['of'] if best is not None else None
+        if convergence_log is not None and (convergence_best is None or sol['of'] > convergence_best):
+            convergence_best = sol['of']
+            convergence_log.append({
+                "Algorithm": algorithm_name,
+                "Elapsed_Time": round(time.time() - start, 6),
+                "Best_Objective": round(convergence_best, 2),
+            })
+
         tabu_search.improve(
             sol,
             tabu_tenure=tabu_tenure,
             max_iter=max_iter,
             time_limit=remaining,
             evolution_csv_path=ts_evolution_csv_path if ts_evolution_pending else None,
+            convergence_log=convergence_log,
+            algorithm_name=algorithm_name,
+            convergence_start_time=start,
+            convergence_best_objective=convergence_best,
         )
         ts_evolution_pending = False
 
         if best is None or best['of'] < sol['of']:
             best = sol
-            if convergence_log is not None:
-                convergence_log.append({
-                    "Algorithm": algorithm_name,
-                    "Elapsed_Time": round(time.time() - start, 6),
-                    "Best_Objective": round(best['of'], 2),
-                })
 
     return best

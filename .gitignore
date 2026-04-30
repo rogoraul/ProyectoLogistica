@@ -1,7 +1,6 @@
 __pycache__/
 *.pyc
 .idea/
-ia-communication/
 tmp/
 output/
 *.log

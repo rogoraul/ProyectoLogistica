@@ -8,8 +8,20 @@ import random
 from structure import solution
 
 
-def improve(sol, tabu_tenure=10, max_iter=5000, time_limit=30, evolution_csv_path=None):
+def improve(
+    sol,
+    tabu_tenure=10,
+    max_iter=5000,
+    time_limit=30,
+    evolution_csv_path=None,
+    convergence_log=None,
+    algorithm_name="GRASP+TS",
+    convergence_start_time=None,
+    convergence_best_objective=None,
+):
     start = time.time()
+    convergence_start_time = convergence_start_time if convergence_start_time is not None else start
+    convergence_best = convergence_best_objective if convergence_best_objective is not None else sol['of']
     best_sol = copy.deepcopy(sol)
     
     # Listas FIFO para Control Bidireccional (como en las diapositivas)
@@ -50,6 +62,14 @@ def improve(sol, tabu_tenure=10, max_iter=5000, time_limit=30, evolution_csv_pat
             iter_no_improve = 0
         else:
             iter_no_improve += 1
+
+        if convergence_log is not None and sol['of'] > convergence_best:
+            convergence_best = sol['of']
+            convergence_log.append({
+                "Algorithm": algorithm_name,
+                "Elapsed_Time": round(time.time() - convergence_start_time, 6),
+                "Best_Objective": round(convergence_best, 2),
+            })
 
         if evolution_rows is not None:
             evolution_rows.append({
