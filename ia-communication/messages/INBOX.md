@@ -27,11 +27,14 @@ This file is an index of all messages in the `messages/` folder. Every AI that a
 | [from-gpt-08.md](from-gpt-08.md) | GPT-5 Codex (OpenAI) | 2026-04-03 | Audit mostly confirmed; two minor issues found and fixed | acknowledged |
 | [from-claude-10.md](from-claude-10.md) | Claude claude-sonnet-4-6 | 2026-04-03 | main.py fix verified - project fully submission-ready | acknowledged |
 | [from-gpt-09.md](from-gpt-09.md) | GPT-5 Codex (OpenAI) | 2026-04-03 | Verification accepted; no further AI-side changes needed before submission | acknowledged |
-| [from-gemini-01.md](from-gemini-01.md) | Gemini gemini-1.5-pro | 2026-04-28 | Archivos de datos tras ejecución del pipeline completo | acknowledged |
-| [from-gemini-02.md](from-gemini-02.md) | Gemini gemini-1.5-pro | 2026-04-28 | CRITICAL BUG in GRASP+TS Convergence Tracking (Task 1) | implemented |
-| [from-gemini-03.md](from-gemini-03.md) | Gemini gemini-1.5-pro | 2026-04-28 | Strategic Plan - Addressing Professor's Feedback on Time & Evolution | implemented |
-| [from-gemini-04.md](from-gemini-04.md) | Gemini gemini-1.5-pro | 2026-04-30 | Full pipeline re-run complete - all data refreshed and consistent | open |
+| [from-gemini-01.md](from-gemini-01.md) | Gemini gemini-1.5-pro | 2026-04-28 | Data files after full pipeline execution | acknowledged |
+| [from-antigravity-01.md](from-antigravity-01.md) | Antigravity Gemini 3.1 Pro High | 2026-04-28 | Tabu Search bidirectional fix and visualization calibration | acknowledged |
+| [from-gemini-02.md](from-gemini-02.md) | Gemini gemini-1.5-pro | 2026-04-28 | Critical bug in GRASP+TS convergence tracking | implemented |
+| [from-gemini-03.md](from-gemini-03.md) | Gemini gemini-1.5-pro | 2026-04-28 | Strategic plan for professor feedback on time and evolution | implemented |
+| [from-gemini-04.md](from-gemini-04.md) | Gemini gemini-1.5-pro | 2026-04-30 | Full pipeline re-run complete - all data refreshed and consistent | acknowledged |
 | [from-gpt-10.md](from-gpt-10.md) | GPT-5 Codex (OpenAI) | 2026-04-30 | Implemented GRASP+TS internal convergence tracking and time-analysis scripts | implemented |
+| [from-gpt-11.md](from-gpt-11.md) | GPT-5 Codex (OpenAI) | 2026-05-07 | Reconciled refreshed results, reports, Excel exports, figures, and AI message state | implemented |
+| [from-gpt-12.md](from-gpt-12.md) | GPT-5 Codex (OpenAI) | 2026-05-07 | Final report material map and legacy artifact quarantine | implemented |
 
 ---
 

@@ -1,313 +1,190 @@
-# Proyecto de Logística Basada en Datos
-## Metaheurísticas para el Problema de la Máxima Diversidad: GRASP y Búsqueda Tabú
+# Proyecto de Logistica Basada en Datos
+## Metaheuristicas para el Problema de la Maxima Diversidad: GRASP y Busqueda Tabu
 
 ---
 
-## 1. Introducción y definición del problema
+## 1. Introduccion y problema
 
-El **Problema de la Máxima Diversidad** (MDP, *Maximum Diversity Problem*) consiste en seleccionar, de un conjunto de *n* elementos con distancias conocidas entre todos los pares, un subconjunto de exactamente *p* elementos que maximice la suma total de las distancias entre los elementos seleccionados:
+El Problema de la Maxima Diversidad (MDP, Maximum Diversity Problem) consiste en seleccionar un subconjunto de exactamente `p` elementos, dentro de un conjunto de `n` candidatos, maximizando la suma de distancias entre todos los pares seleccionados:
 
-$$\text{maximizar} \sum_{i,j \in S,\ i < j} d(i, j)$$
+```text
+max sum d(i, j), para i,j en S e i < j
+```
 
-El problema es NP-difícil, por lo que se recurre a metaheurísticas para obtener soluciones de alta calidad en tiempo razonable.
+Es un problema NP-dificil, por lo que se emplean metaheuristicas para obtener soluciones de alta calidad en tiempos razonables.
 
-El interés logístico es directo: seleccionar *p* localizaciones de entre *n* candidatas maximizando la dispersión geográfica (cobertura máxima del territorio), o construir una cartera de activos lo más diversa posible. En ambos casos, maximizar la distancia total entre elementos seleccionados es equivalente a maximizar la cobertura o la diversificación.
+Las instancias usadas pertenecen a la familia MDG-a:
 
-Las instancias utilizadas pertenecen a la colección MDG-a:
-
-| Tipo | n | p | Instancias |
-|------|---|---|------------|
-| Pequeñas | 100 | 10 | 6 instancias |
-| Grandes | 500 | 50 | 9 instancias |
+| Tipo | n | p | Numero de instancias |
+| ---- | - | - | -------------------- |
+| Pequenas | 100 | 10 | 6 |
+| Grandes | 500 | 50 | 9 |
 
 ---
 
 ## 2. Algoritmos implementados
 
-### 2.1 GRASP (Greedy Randomized Adaptive Search Procedure)
+### 2.1 GRASP
 
-GRASP es una metaheurística iterativa de dos fases que se repite mientras haya presupuesto de tiempo:
+GRASP combina una fase constructiva greedy-aleatoria con una busqueda local de mejor mejora.
 
-1. **Construcción**: se construye una solución greedy-aleatoria usando una Lista Restringida de Candidatos (RCL). El parámetro *alpha* controla el equilibrio entre codicia y aleatoriedad: `alpha = 0` es totalmente greedy (siempre el mejor candidato), `alpha = 1` es totalmente aleatorio. Con `alpha = -1`, se aleatoriza el propio alpha en cada iteración.
+En la construccion, el parametro `alpha` controla el equilibrio entre voracidad y aleatoriedad:
 
-2. **Mejora local**: se aplica una búsqueda local de mejor mejora (*best-improvement*) sobre la solución construida, intercambiando un elemento seleccionado por uno no seleccionado hasta alcanzar un óptimo local.
+- `alpha=0` aproxima una construccion greedy.
+- `alpha=1` aproxima una construccion aleatoria.
+- `alpha=-1` aleatoriza el valor de `alpha` durante la construccion.
 
-La versión implementada usa un límite de tiempo global compartido entre todas las iteraciones GRASP.
+Tras construir una solucion, se aplica busqueda local exhaustiva de intercambio 1-1 hasta no encontrar ningun movimiento con mejora positiva.
 
-### 2.2 Búsqueda Tabú (Tabu Search)
+### 2.2 Busqueda Tabu
 
-La Búsqueda Tabú mejora una solución mediante intercambios (1 elemento entra, 1 sale), aceptando también movimientos que empeoran la solución actual para escapar de óptimos locales. Para evitar ciclos, mantiene una **lista tabú**: los elementos recientemente eliminados de la solución no pueden re-entrar durante *tenure* iteraciones.
+La Busqueda Tabu parte de una solucion y explora intercambios 1-1 permitiendo tambien movimientos que empeoran temporalmente la solucion actual. Esto permite escapar de optimos locales.
 
-Componentes implementados:
-- **Lista tabú FIFO**: los elementos eliminados se añaden al final; cuando supera la capacidad `tenure`, se elimina el más antiguo.
-- **Criterio de aspiración**: un movimiento tabú puede aceptarse si produce una solución mejor que el mejor global conocido hasta ese momento.
-- **Límite de tiempo** y **límite de iteraciones sin mejora** como criterios de parada.
+La version actual usa:
 
-### 2.3 GRASP + Búsqueda Tabú
+- memoria tabu bidireccional: elementos que salen no pueden reentrar inmediatamente, y elementos que entran no pueden salir inmediatamente;
+- listas FIFO de corto plazo;
+- tenure dinamico entre `tabu_tenure` y `1.5 * tabu_tenure`;
+- criterio de aspiracion: un movimiento tabu puede aceptarse si mejora el mejor global conocido;
+- limite de tiempo global y limite de iteraciones sin mejora.
 
-La combinación usa GRASP para la fase de construcción y Búsqueda Tabú como fase de mejora. El presupuesto de tiempo es global: cada llamada a la Búsqueda Tabú recibe el tiempo restante del presupuesto total, no un tiempo fijo independiente. Esto garantiza que ninguna iteración monopolice el tiempo disponible.
+### 2.3 GRASP+TS
+
+GRASP+TS usa GRASP para construir soluciones iniciales y Busqueda Tabu como fase de mejora. El presupuesto de tiempo es global: cada llamada a Tabu Search recibe solo el tiempo restante. Ademas, la telemetria actual registra cada mejora estricta del mejor global dentro de Tabu Search, lo que permite dibujar curvas reales de convergencia.
 
 ---
 
-## 3. Detalles de implementación
+## 3. Implementacion relevante
 
-### 3.1 Representación de la solución
-
-La solución se representa como un diccionario Python con tres campos:
+La solucion se representa como un diccionario Python:
 
 ```python
 sol = {
-    'sol': set(),      # conjunto de índices de nodos seleccionados
-    'of': 0.0,         # valor de la función objetivo
-    'instance': inst   # referencia a la instancia
+    "sol": set(),
+    "of": 0.0,
+    "instance": inst,
 }
 ```
 
-La elección de `set` para almacenar los nodos seleccionados es deliberada: la operación de pertenencia (`v in sol['sol']`) es O(1), lo cual es crítico porque se ejecuta miles de veces en cada evaluación del vecindario.
+El uso de `set` permite comprobar pertenencia en O(1). La funcion objetivo se actualiza incrementalmente: al sacar un nodo se resta su contribucion marginal y al meter otro se suma su nueva contribucion respecto al conjunto resultante. Esto evita recomputar desde cero la suma de todas las distancias.
 
-### 3.2 Evaluación incremental de la función objetivo
+La busqueda local y la Busqueda Tabu comparten el vecindario de intercambio:
 
-Recomputar la función objetivo desde cero tras cada movimiento costaría O(p²) operaciones. En su lugar, se calcula la **variación marginal** de añadir o eliminar un nodo: la suma de las distancias entre ese nodo y todos los nodos actualmente en la solución. Esta variación, denominada `ofVariation`, se precalcula una vez y se usa para actualizar `sol['of']` de forma incremental:
-
-```python
-# Al eliminar un nodo u con variación precalculada:
-sol['of'] -= ofVariation
-sol['sol'].remove(u)
-
-# Al añadir un nodo u con variación precalculada:
-sol['of'] += ofVariation
-sol['sol'].add(u)
+```text
+delta = contribucion(v_in sin v_out) - contribucion(v_out)
 ```
 
-Esta optimización reduce el coste de cada movimiento de O(p²) a O(p), un factor crítico para instancias con n=500 y p=50.
-
-### 3.3 Fase de construcción GRASP
-
-El primer nodo se elige **aleatoriamente** (no de forma greedy), asegurando diversidad desde el primer elemento. Para los nodos siguientes:
-
-1. Se construye una lista de candidatos (todos los nodos no seleccionados) con su ganancia marginal actualizada.
-2. Se calcula el umbral de la RCL: `threshold = gmax - alpha * (gmax - gmin)`.
-3. Se añaden a la RCL todos los candidatos con ganancia >= threshold.
-4. Se elige un elemento de la RCL al azar.
-5. Las ganancias marginales de los candidatos restantes se actualizan de forma incremental: `c[0] += d[nuevo_nodo][c[1]]`.
-
-El alfa adaptativo (`alpha = -1`) aleatoriza el propio valor de alpha en cada iteración GRASP, combinando automáticamente fases más greedy y más aleatorias dentro del mismo presupuesto de tiempo.
-
-### 3.4 Búsqueda local de mejor mejora
-
-La búsqueda local evalúa **todos los intercambios posibles** (v_out, v_in) donde v_out está en la solución y v_in no lo está. Para cada par, calcula la variación de la función objetivo:
-
-```
-delta = ofVariacion(v_in, sin v_out) - ofVariacion(v_out)
-```
-
-Se aplica el intercambio con mayor delta positivo. Si ningún delta es positivo, la búsqueda termina (se alcanzó un óptimo local respecto al vecindario de intercambio 1-1).
-
-El coste por iteración es O(p × (n-p)). Para n=500, p=50, esto son 22.500 evaluaciones por iteración.
-
-**Nota de implementación**: en una versión anterior, la búsqueda local solo evaluaba intercambios para el nodo seleccionado con menor contribución (no todos los nodos seleccionados). Esto es una heurística más rápida pero más débil, y no corresponde a la definición estricta de *best-improvement*. Se corrigió a la versión exhaustiva.
-
-### 3.5 Búsqueda Tabú: lista y criterio de aspiración
-
-La lista tabú es una lista Python estándar usada como cola FIFO:
-
-```python
-tabu_list.append(v_out)         # elemento eliminado -> entra en lista tabú
-if len(tabu_list) > tenure:
-    tabu_list.pop(0)            # el más antiguo sale
-```
-
-El **criterio de aspiración** permite ignorar el estado tabú de un movimiento si con ese movimiento se mejoraría el mejor global conocido:
-
-```python
-if v_in in tabu_list:
-    if sol['of'] + delta > best_of:   # aspiración
-        # registrar como candidato de aspiración
-    continue
-
-# si el movimiento de aspiración supera al mejor movimiento no-tabú, prevalece
-```
-
-Esta implementación es conservadora: la aspiración solo se activa cuando el movimiento no solo mejora la solución actual, sino que supera el mejor global. Además, el movimiento de aspiración solo prevalece si su ganancia es estrictamente mayor que la del mejor movimiento no-tabú disponible. Esto evita aceptar movimientos tabú que aunque mejoren el global, sean peores que una alternativa no-tabú.
-
-### 3.6 Presupuesto de tiempo compartido en GRASP+TS
-
-La integración de ambos algoritmos gestiona el tiempo de forma global:
-
-```python
-while time.time() - start_time < time_limit:
-    remaining = time_limit - (time.time() - start_time)
-    sol = cgrasp.construct(inst, alpha)
-    tabu_search.improve(sol, time_limit=remaining, ...)
-    if sol['of'] > best['of']:
-        best = sol
-```
-
-El tiempo restante se pasa a cada llamada a la Búsqueda Tabú. Así, si la construcción de una iteración tarda más de lo habitual, la Búsqueda Tabú correspondiente dispondrá de menos tiempo, pero el presupuesto global siempre se respeta. La alternativa (asignar un tiempo fijo a cada componente) correría el riesgo de que iteraciones tardías quedaran sin tiempo para la fase de mejora.
-
-### 3.7 Pipeline de experimentación: calibración secuencial y handoff JSON
-
-La calibración de hiperparámetros podría haberse hecho con un grid completo (alpha × tenure), lo que con los valores planteados habría requerido aproximadamente 17 horas de cómputo. Se optó por una **calibración secuencial** en dos pasos:
-
-1. Fijar tenure = 15 (valor central) y calibrar alpha.
-2. Fijar el mejor alpha encontrado y calibrar tenure.
-
-Esto reduce el coste a ~1.5 horas con muy poca pérdida de información, ya que la interacción entre alpha y tenure es baja a este nivel de presupuesto de tiempo.
-
-Los mejores parámetros se guardan automáticamente en `experiments/calibration_summary.json`, que el script de comparación lee al arrancar. Si el fichero no existe, el script usa valores por defecto seguros. Este diseño evita que el experimento de comparación dependa de que el usuario copie manualmente los valores calibrados.
+GRASP acepta solo mejoras locales positivas. Tabu Search, en cambio, puede aceptar empeoramientos, siempre respetando la memoria tabu salvo aspiracion.
 
 ---
 
-## 4. Experimentación
+## 4. Experimentacion
 
-### 4.1 Configuración experimental
+### 4.1 Configuracion experimental
 
-| Parámetro | Calibración | Comparación final |
-|-----------|-------------|-------------------|
-| Tiempo por run | 10 s | 30 s |
-| Runs por configuración | 3 | 5 |
-| Instancias usadas | 5 pequeñas + 5 grandes | 6 pequeñas + 9 grandes |
-| Semilla base | 42 (+ índice de run) | 42 (+ índice de run) |
+| Fase | Tiempo por run | Runs |
+| ---- | -------------- | ---- |
+| Calibracion | 10 s | 3 por configuracion |
+| Comparacion final | 30 s | 5 por instancia y algoritmo |
+| Curvas largas | 180 s | 1 por instancia y algoritmo |
 
-### 4.2 Calibración de alpha (GRASP)
+La calibracion es secuencial: primero se calibra `alpha`; despues se fija ese valor y se calibra `tenure`.
 
-**Instancias pequeñas (n=100)**: los seis valores de alpha produjeron exactamente el mismo resultado (OF media = 356.34, desviación estándar = 0). El algoritmo converge al mismo óptimo local independientemente del alpha. El valor seleccionado (alpha = 0.1) es un desempate, no una señal de sensibilidad real.
-
-**Instancias grandes (n=500)**:
-
-| Alpha | Avg Dev% | Media avg OF |
-|-------|----------|--------------|
-| **0.1** | **0.2536%** | **7694.55** |
-| 0.25 | 0.2868% | 7691.99 |
-| -1 | 0.3373% | 7688.07 |
-| 0.9 | 0.5551% | 7671.26 |
-| 0.5 | 0.5816% | 7669.25 |
-| 0.75 | 0.7272% | 7658.02 |
-
-GRASP con búsqueda local de mejor mejora prefiere **alpha bajo (0.1)**: soluciones de partida greedy dan mejores resultados porque la búsqueda local no puede escapar de cuencas de atracción locales; cuanto mejor la solución inicial, mejor el óptimo local alcanzado.
-
-### 4.3 Calibración de (alpha, tenure) para GRASP+TS
-
-**Alpha sweep (tenure fijado a 15)**:
-
-| Alpha | Avg Dev% | Media avg OF |
-|-------|----------|--------------|
-| **0.9** | **0.1094%** | **7700.98** |
-| 0.75 | 0.2635% | 7689.05 |
-| 0.25 | 0.3319% | 7683.78 |
-| -1 | 0.3714% | 7680.75 |
-| 0.1 | 0.4696% | 7673.12 |
-| 0.5 | 0.5106% | 7670.05 |
-
-**Tenure sweep (alpha fijado a 0.9)**:
-
-| Tenure | Avg Dev% | Media avg OF |
-|--------|----------|--------------|
-| **10** | **0.0906%** | **7705.39** |
-| 15 | 0.1475% | 7700.98 |
-| 20 | 0.1804% | 7698.44 |
-| 30 | 0.2803% | 7690.76 |
-| 25 | 0.2875% | 7690.20 |
-| 5 | 0.3623% | 7684.35 |
-
-**Hallazgo destacable**: GRASP+TS prefiere **alpha alto (0.9)**, lo opuesto a GRASP solo. La explicación es estructural: la Búsqueda Tabú es suficientemente potente para mejorar soluciones de baja calidad, y se beneficia de la diversidad que aportan puntos de partida más aleatorios. Con soluciones iniciales demasiado greedy, la Búsqueda Tabú converge rápido a la misma región del espacio de búsqueda en todas las iteraciones, reduciendo la exploración global.
-
-La curva de tenure muestra un comportamiento no monótono: tenure = 5 es demasiado corto (el algoritmo cicla), valores por encima de 10 comienzan a bloquear movimientos buenos. El óptimo claro es tenure = 10.
-
-**Parámetros seleccionados para la comparación final**:
+### 4.2 Parametros seleccionados
 
 | Grupo | GRASP alpha | GRASP+TS alpha | GRASP+TS tenure |
-|-------|-------------|----------------|-----------------|
-| Pequeñas (n=100) | 0.1 | 0.25 | 15 |
-| Grandes (n=500) | 0.1 | 0.9 | 10 |
+| ----- | ----------- | -------------- | --------------- |
+| Pequenas | 0.1 | -1 | 5 |
+| Grandes | 0.1 | 0.1 | 10 |
 
-### 4.4 Comparación final — instancias pequeñas (n=100)
+En instancias pequenas todas las configuraciones relevantes saturan, asi que la seleccion es un desempate practico. En instancias grandes, la configuracion `alpha=0.1, tenure=10` de GRASP+TS consigue la menor desviacion media durante la calibracion.
 
-Ambos algoritmos producen **resultados idénticos en los 30 runs** (6 instancias × 5 runs). La desviación estándar es 0.0 en todos los casos. El test de Wilcoxon se omite porque todos los pares son empates exactos.
+### 4.3 Comparacion en instancias pequenas
 
-Conclusión: a esta escala, con un presupuesto de 30 segundos, la búsqueda local de mejor mejora ya converge al mismo óptimo local independientemente de si se aplica o no la Búsqueda Tabú encima. Las instancias pequeñas confirman que la implementación es correcta y consistente, pero no permiten discriminar entre los dos algoritmos.
+En las 6 instancias pequenas, con 5 semillas por instancia, los 30 pares GRASP vs GRASP+TS son empates exactos. El test de Wilcoxon se omite porque todas las diferencias son cero.
 
-### 4.5 Comparación final — instancias grandes (n=500)
+Conclusion: con `n=100` y 30 segundos, ambas variantes alcanzan la misma calidad. La Busqueda Tabu no aporta una mejora medible en este grupo.
 
-**Parámetros**: GRASP con alpha = 0.1; GRASP+TS con alpha = 0.9, tenure = 10.
+### 4.4 Comparacion en instancias grandes
 
-| Instancia | GRASP avg | GRASP std | TS avg | TS std | Delta (TS-GRASP) | Mejor obs. | GRASP=mejor | TS=mejor |
-|-----------|-----------|-----------|--------|--------|------------------|------------|-------------|----------|
-| MDG-a_2 | 7695.50 | 22.67 | 7694.42 | 40.22 | -1.1 | 7756.24 | - | si |
-| MDG-a_5 | 7697.35 | 29.16 | 7635.25 | 77.71 | -62.1 | 7755.23 | - | si |
-| MDG-a_6 | 7712.16 | 26.79 | 7691.21 | 31.49 | -20.9 | 7752.31 | si | - |
-| MDG-a_9 | 7730.84 | 11.93 | 7700.91 | 40.82 | -29.9 | 7755.20 | - | si |
-| MDG-a_13 | 7737.72 | 8.70 | 7747.95 | 36.99 | +10.2 | 7780.22 | - | si |
-| MDG-a_16 | 7739.38 | 18.30 | 7690.25 | 31.04 | -49.1 | 7757.50 | si | - |
-| MDG-a_17 | 7723.03 | 29.49 | 7704.35 | 54.84 | -18.7 | 7785.30 | - | si |
-| MDG-a_19 | 7702.49 | 20.26 | 7677.74 | 28.99 | -24.7 | 7729.01 | si | - |
-| MDG-a_20 | 7688.01 | 17.80 | 7658.29 | 33.11 | -29.7 | 7718.59 | si | - |
+| Instancia | GRASP avg | TS avg | Delta TS-GRASP | Mejor observado | TS best hits |
+| --------- | --------- | ------ | -------------- | -------------- | ------------ |
+| MDG-a_2 | 7695.50 | 7729.77 | +34.27 | 7741.07 | 1 |
+| MDG-a_5 | 7697.35 | 7739.21 | +41.86 | 7755.23 | 2 |
+| MDG-a_6 | 7712.16 | 7754.04 | +41.88 | 7770.48 | 1 |
+| MDG-a_9 | 7730.84 | 7741.52 | +10.68 | 7758.44 | 1 |
+| MDG-a_13 | 7737.72 | 7761.13 | +23.41 | 7786.43 | 1 |
+| MDG-a_16 | 7739.38 | 7756.25 | +16.87 | 7792.77 | 1 |
+| MDG-a_17 | 7723.03 | 7772.74 | +49.71 | 7785.36 | 2 |
+| MDG-a_19 | 7702.49 | 7745.61 | +43.12 | 7755.41 | 2 |
+| MDG-a_20 | 7688.01 | 7712.33 | +24.32 | 7727.13 | 1 |
 
-*"Mejor obs." = máximo observado en cualquier run de cualquier algoritmo para esa instancia.*
+Resumen agregado en grandes:
 
-**Resumen agregado (instancias grandes)**:
+| Metrica | GRASP | GRASP+TS |
+| ------- | ----- | -------- |
+| Avg dev% | 0.6379% | 0.2284% |
+| Desviacion estandar media | 20.57 | 20.27 |
+| Best hits | 0 | 12 |
+| Wins pareados | 8 | 36 |
+| Empates | - | 1 |
+| Delta medio TS-GRASP | - | +31.7891 |
+| Wilcoxon W | - | 79.0 |
+| Wilcoxon p-valor | - | 8.24e-08 |
 
-| Métrica | GRASP | GRASP+TS |
-|---------|-------|----------|
-| Avg dev% | 0.5200% | 0.8443% |
-| Desv. estándar media | 20.57 | 41.69 |
-| Instancias en que alcanza el mejor observado | 4/9 | 5/9 |
-| Wins en comparación pareada (45 pares) | **30** | 15 |
-| Delta medio (TS - GRASP) | - | -25.13 |
-| Wilcoxon W | - | 256.0 |
-| Wilcoxon p-valor | - | **0.0026** |
-
-El test de Wilcoxon signed-rank (bilateral, `zero_method="wilcox"`, 45 pares no empatados) confirma que la ventaja de GRASP sobre GRASP+TS en calidad media de run es **estadísticamente significativa** (p = 0.0026, nivel de significancia 0.05).
-
-**Caso MDG-a_5**: este es el ejemplo más extremo de la varianza de GRASP+TS. En un run alcanzó el mejor valor observado (7755.23), pero tres runs cayeron por debajo de 7620 (peor: 7560.80), resultando en la mayor desviación estándar del benchmark (77.71) y el mayor delta negativo (-62.1). No es ruido aleatorio: es consecuencia directa de que GRASP+TS realiza menos reinicios por presupuesto de tiempo, explorando menos regiones del espacio de búsqueda.
+El test de Wilcoxon signed-rank bilateral, aplicado a los pares no empatados, confirma que la diferencia es estadisticamente significativa. La direccion de la diferencia favorece a GRASP+TS.
 
 ---
 
-## 5. Discusión y conclusiones
+## 5. Analisis solicitado por el profesor
 
-### 5.1 Trade-off exploración vs. explotación bajo un presupuesto fijo
+### 5.1 Evolucion interna de Tabu Search
 
-El resultado principal no es que un algoritmo domine al otro, sino que hay un **trade-off entre amplitud y profundidad** condicionado al presupuesto de tiempo:
+El archivo `csv_final/ts_evolution_single_restart.csv` registra una reiniciacion individual de Tabu Search. Contiene 2586 iteraciones, de las cuales 1403 son movimientos de empeoramiento.
 
-- **GRASP** completa muchos reinicios cortos (construcción + búsqueda local). Con 30 segundos, alcanza mayor calidad media y menor varianza: avg dev% 0.52%, desv. estándar media 20.6, 30 de 45 wins, diferencia estadísticamente significativa (p = 0.0026).
+Esto demuestra visualmente el comportamiento esperado: la solucion actual puede bajar para escapar de un optimo local, mientras el mejor global se mantiene y mejora por escalones.
 
-- **GRASP+TS** invierte más tiempo en explotar cada solución construida. Llega a valores máximos más altos en más instancias (5/9 vs 4/9), pero lo hace con mayor varianza e irregularidad. Cuando acierta, alcanza soluciones que GRASP nunca encontrará con ninguna semilla.
+Figura asociada: `csv_final/ts_evolution_plot.png`.
 
-Este trade-off está corroborado por el hallazgo de calibración: GRASP se beneficia de soluciones iniciales greedy (alpha = 0.1) para que la búsqueda local rápida sea eficiente, mientras que GRASP+TS se beneficia de soluciones iniciales aleatorias (alpha = 0.9) para que la Búsqueda Tabú tenga más diversidad con la que trabajar. La política óptima de construcción depende de la fuerza de la fase de mejora.
+### 5.2 Efecto de dar mas tiempo
 
-### 5.2 ¿Contribuye la Búsqueda Tabú a mejorar GRASP?
+El experimento `experiments/time_analysis.py` ejecuta GRASP y GRASP+TS durante 180 segundos por algoritmo en dos instancias grandes representativas.
 
-La respuesta es **condicional**:
+| Instancia | GRASP final | GRASP+TS final |
+| --------- | ----------- | -------------- |
+| MDG-a_16 | 7748.58 | 7789.24 |
+| MDG-a_13 | 7755.63 | 7798.43 |
 
-- En **instancias pequeñas (n=100)**: no, porque ambos algoritmos saturan al mismo óptimo local. El problema es suficientemente fácil a esta escala.
+Figura asociada: `csv_final/convergence_curves_large.png`.
 
-- En **instancias grandes (n=500) con 30 segundos**: GRASP puro produce mejor calidad media. GRASP+TS produce mejores picos. La Búsqueda Tabú mejora la capacidad de encontrar los mejores valores del espacio, pero a costa de consistencia.
-
-- Con un **presupuesto mayor** (p. ej., 120 segundos), la situación cambia probablemente. GRASP+TS completaría más reinicios y su mayor capacidad de explotación por iteración comenzaría a compensar. La ventaja de GRASP en breadth es mayor cuando el tiempo es corto; la ventaja de TS en depth es mayor cuando el tiempo es suficiente para explotar varias regiones.
-
-### 5.3 Limitaciones y trabajo futuro
-
-- El array `freq` (frecuencia de selección de cada nodo) se registra en la Búsqueda Tabú pero no se usa para diversificación. Podría usarse para penalizar nodos muy frecuentes en fases de diversificación, una extensión estándar de la Búsqueda Tabú a largo plazo.
-
-- La calibración es secuencial, lo que puede perderse interacciones entre alpha y tenure. En un proyecto con más tiempo computacional, un grid completo o una búsqueda bayesiana permitiría explorar el espacio conjunto.
-
-- Sin tiempo de cómputo extendido, no es posible confirmar empíricamente la conjetura sobre presupuestos mayores. Queda como hipótesis fundamentada en la estructura del algoritmo.
+Estas curvas muestran que GRASP+TS sigue encontrando mejoras dentro de fases largas de Busqueda Tabu y alcanza valores finales superiores a GRASP en las dos instancias analizadas.
 
 ---
 
-## Ficheros entregados
+## 6. Conclusiones
 
-| Fichero | Descripción |
-|---------|-------------|
-| `algorithms/grasp.py` | GRASP + búsqueda local, versión con límite de iteraciones |
-| `algorithms/grasp_timed.py` | GRASP + búsqueda local, versión con límite de tiempo |
-| `algorithms/grasp_ts.py` | GRASP + Búsqueda Tabú con presupuesto de tiempo global |
-| `constructives/cgrasp.py` | Construcción greedy-aleatoria (RCL) |
-| `localsearch/lsbestimp.py` | Búsqueda local de mejor mejora exhaustiva |
-| `localsearch/tabu_search.py` | Búsqueda Tabú con criterio de aspiración |
-| `structure/instance.py` | Lectura de instancias MDG |
-| `structure/solution.py` | Representación de soluciones |
-| `experiments/calibration.py` | Pipeline de calibración secuencial |
-| `experiments/comparison.py` | Comparación con test de Wilcoxon |
-| `experiments/generate_excel.py` | Generación del fichero Excel |
-| `experiments/resultados.xlsx` | Tablas de experimentación (5 pestañas) |
+1. En instancias pequenas, GRASP y GRASP+TS son equivalentes bajo el presupuesto experimental usado.
+2. En instancias grandes, los datos actuales favorecen claramente a GRASP+TS: menor desviacion media, mas victorias pareadas, mas mejores observados y Wilcoxon significativo.
+3. La correccion de telemetria permite observar correctamente la convergencia interna de GRASP+TS; antes, las mejoras dentro de Tabu Search quedaban colapsadas en un unico punto final.
+4. La traza de Tabu Search muestra empeoramientos temporales, que son parte normal y deseable del mecanismo de escape.
+5. Al ampliar el presupuesto de tiempo a 180 segundos, GRASP+TS sigue mejorando y supera a GRASP en las instancias grandes seleccionadas.
+
+La conclusion final es que la Busqueda Tabu si aporta valor al proyecto en instancias grandes. No solo mejora los mejores valores alcanzados, sino tambien la calidad media bajo la implementacion y los datos actuales.
+
+---
+
+## 7. Ficheros principales
+
+| Fichero | Descripcion |
+| ------- | ----------- |
+| `algorithms/grasp_timed.py` | GRASP con presupuesto de tiempo y telemetria opcional |
+| `algorithms/grasp_ts.py` | GRASP+TS con presupuesto global y logging de mejoras |
+| `localsearch/tabu_search.py` | Busqueda Tabu bidireccional con tenure dinamico y aspiracion |
+| `experiments/calibration.py` | Calibracion secuencial |
+| `experiments/comparison.py` | Comparacion final y test de Wilcoxon |
+| `experiments/generate_excel.py` | Generacion de tablas Excel |
+| `experiments/time_analysis.py` | Curvas de convergencia a 180 segundos |
+| `experiments/plot_time_analysis.py` | Grafica de convergencia larga |
+| `notebooks/visualize_csvs.ipynb` | Visualizacion de CSVs principales |
+| `csv_final/ts_evolution_single_restart.csv` | Evolucion interna de una reiniciacion Tabu |
+| `csv_final/convergence_curves_large.csv` | Curvas temporales en instancias grandes |

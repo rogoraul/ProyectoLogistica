@@ -1,108 +1,88 @@
-# Resumen y análisis de los resultados en la carpeta `experiments`
+# Resumen de resultados actuales
 
-Fecha de generación: 2026-04-17
+Fecha de actualizacion: 2026-05-07
 
-Este documento resume y analiza los resultados contenidos en los archivos CSV/JSON del directorio `experiments`. Se han inspeccionado y consolidado los siguientes ficheros: `calibration_summary.json`, `calibration_grasp_summary.csv`, `calibration_grasp.csv`, `calibration_grasp_runs.csv`, `calibration_ts.csv`, `calibration_ts_runs.csv`, `calibration_ts_summary.csv`, `comparison_results.csv`, `comparison_runs.csv` y `comparison_tests.json`.
+Este documento resume los resultados vigentes generados a partir de los CSV y JSON actuales en `experiments/` y `csv_final/`. La fuente de verdad es la reejecucion completa del pipeline del 2026-04-30, con `comparison_tests.json` recalculado desde `comparison_runs.csv` al disponer ya de `scipy`.
 
-Objetivo del análisis
-- Identificar las mejores configuraciones de parámetros para las variantes GRASP y GRASP+TS (Tabu Search) en dos grupos de instancias (`small`, n≈100; y `large`, n≈500).
-- Resumir comportamiento por instancia y por grupo: calidad de solución (desviación respecto a referencia), estabilidad (desviación estándar / variabilidad entre ejecuciones) y coste temporal medio.
-- Interpretar los test estadísticos y proponer recomendaciones de configuración.
+## Fuente de datos
 
-Resumen ejecutivo
-- Para el conjunto `small` (instancias con n≈100): ambas técnicas (GRASP y GRASP+TS) alcanzan soluciones idénticas a las referencias en la mayoría de configuraciones; la variabilidad es prácticamente nula y no hay diferencias relevantes entre parámetros explorados. Esto provoca que muchos pares resulten empatados en las comparaciones.
-- Para el conjunto `large` (instancias con n≈500): la fase de calibración muestra que TS puede encontrar combinaciones con menor `best_avg_dev_pct` (p. ej. `alpha=0.9`, `tenure=10` → ≈0.0906%). No obstante, las comparaciones finales bajo el protocolo de 30s devuelven un `avg_dev_pct` agregado menor para GRASP (≈0.5200%) frente a GRASP+TS (≈0.8443%). Esto no es contradictorio: GRASP ofrece resultados más consistentes en media, mientras que TS introduce mayor variabilidad y ocasionalmente alcanza mejoras sustanciales (mejores "best-of-run"). En el grupo `large` TS alcanza el `best_known` en 5 ejecuciones frente a 4 de GRASP; en total (todas las instancias) TS consigue 35 coincidencias con el `best_known` frente a 34 de GRASP (de 75 ejecuciones). Ejemplos: TS iguala el `best_known` en MDG-a_2, MDG-a_5, MDG-a_9, MDG-a_13 y MDG-a_17; GRASP lo hace en MDG-a_6, MDG-a_16, MDG-a_19 y MDG-a_20.
-- El test de comparación emparejada (Wilcoxon) sobre las diferencias emparejadas en `large` da p = 0.002628 y `mean_delta_ts_minus_grasp = -25.1271`. El signo negativo indica que, en la métrica usada para la prueba (ts - grasp), las medias favorecen a GRASP (es decir, GRASP obtiene mejores valores medios de `of`). La prueba confirma una diferencia estadísticamente significativa, pero no captura por sí sola la existencia de mejoras puntuales importantes que TS puede producir.
+- `experiments/calibration_summary.json`
+- `experiments/calibration_grasp_summary.csv`
+- `experiments/calibration_ts_summary.csv`
+- `experiments/comparison_results.csv`
+- `experiments/comparison_runs.csv`
+- `experiments/comparison_tests.json`
+- `csv_final/ts_evolution_single_restart.csv`
+- `csv_final/convergence_curves_large.csv`
 
-Descripción de los ficheros analizados
-- `calibration_summary.json`: JSON con resumen de la calibración global por grupos (`small`/`large`) y por método (GRASP y TS); contiene los mejores parámetros y la desviación media asociada.
-- `calibration_grasp_summary.csv`: resumen por `alpha` de GRASP (por grupo) con `avg_dev_pct` y tiempos medios.
-- `calibration_grasp.csv` y `calibration_grasp_runs.csv`: resultados por instancia y por ejecución (of = objective function), tiempos y desviaciones.
-- `calibration_ts.csv` y `calibration_ts_runs.csv`: resultados análogos para el procedimiento con Tabu Search (incluye barridos por `alpha` y `tenure`).
-- `calibration_ts_summary.csv`: resumen agregado para TS (barridos de `alpha` y `tenure`).
-- `comparison_results.csv` y `comparison_runs.csv`: comparaciones finales por instancia entre las configuraciones seleccionadas para GRASP y GRASP+TS (promedios y estadísticas resumen por instancia).
-- `comparison_tests.json`: resultados de las pruebas estadísticas emparejadas (conteo de wins/ties, estadísticos de Wilcoxon y p-valores) separadas por grupo y global.
+## Parametros seleccionados
 
-Lectura rápida de los números clave
-- `calibration_summary.json` (extracto):
-  - `small`: GRASP best_alpha = 0.1 (best_avg_dev_pct = 0.0); TS best_alpha = 0.25, best_tenure = 15 (best_avg_dev_pct = 0.0). Conclusión: para instancias pequeñas ambas técnicas logran soluciones equivalentes al benchmark.
-  - `large`: GRASP best_alpha = 0.1 (best_avg_dev_pct = 0.2536); TS best_alpha = 0.9, best_tenure = 10 (best_avg_dev_pct = 0.0906). Observación: esos valores provienen de la fase de calibración con presupuesto corto; en las comparaciones finales (`comparison_results.csv`) el promedio de `avg_dev_pct` por grupo favorece a GRASP (≈0.5200% frente a ≈0.8443% para TS).
-- `calibration_grasp_summary.csv`: para `large` la desviación relativa promedio (`avg_dev_pct`) por `alpha` muestra que `alpha=0.1` es el mejor entre los examinados (≈0.2536%), y valores de `alpha` más altos (0.5, 0.75, 0.9) empeoran la desviación.
-- `calibration_ts_summary.csv`: para `large` `alpha=0.9` y barridos de `tenure` muestran el mejor resultado en promedio con `tenure=10` (≈0.0906%). En `small` la mayoría de configuraciones devuelven `avg_dev_pct = 0.0`.
-- `comparison_tests.json`:
-  - `overall`: n_pairs = 75, wins_grasp = 30, wins_ts = 15, ties = 30, mean_delta_ts_minus_grasp = -15.0763, pvalue = 0.002628 → hay evidencia estadística de diferencia global.
-  - `small`: todas las parejas empatadas (skipped).
-  - `large`: n_pairs = 45, wins_grasp = 30, wins_ts = 15, ties = 0, mean_delta_ts_minus_grasp = -25.1271, pvalue = 0.002628 → diferencia significativa en `large`.
+| Grupo | GRASP alpha | GRASP+TS alpha | GRASP+TS tenure |
+| ----- | ----------- | -------------- | --------------- |
+| small | 0.1 | -1 | 5 |
+| large | 0.1 | 0.1 | 10 |
 
-Interpretación detallada
-1) Efecto del tamaño de la instancia
-- Instancias `small` (n≈100) son relativamente fáciles respecto al presupuesto de tiempo usado en los experimentos: tanto GRASP como GRASP+TS alcanzan la solución de referencia de forma estable (variación nula en muchas ejecuciones). Por eso los resultados de calibración y las comparaciones aparecen como empates. Cuando todas las ejecuciones devuelven la misma `of` para todas las semillas/configuraciones, las pruebas emparejadas quedan sin información útil y el análisis estadístico se marca como `skipped`.
-- Instancias `large` (n≈500) presentan diferencias donde la fase de búsqueda local/intenificación importa: GRASP por sí solo tiene mayor sensibilidad al parámetro `alpha` y, aun con el mejor `alpha` (0.1), mantiene una desviación promedio mayor que la versión con Tabu Search. La combinación con TS reduce la desviación promedio de forma consistente.
- - Instancias `large` (n≈500) presentan diferencias donde la fase de búsqueda local/intenificación importa: en la fase de calibración TS suele reducir la desviación promedio (ver `calibration_ts_summary.csv`), pero las comparaciones finales muestran que GRASP tiene un `avg_dev_pct` agregado menor; en la práctica TS introduce mayor variabilidad y tiende a producir mejores "best-of-run" (más coincidencias con el `best_known`) en varias instancias.
+En `small`, todas las configuraciones relevantes empatan con desviacion media 0.0%, por lo que los parametros son desempates practicos. En `large`, GRASP prefiere `alpha=0.1`; GRASP+TS tambien selecciona `alpha=0.1`, con `tenure=10`.
 
-2) ¿Por qué TS mejora en instancias grandes?
-- Intensificación: Tabu Search proporciona una búsqueda local más agresiva y memoria (tenure) que permite escapar de ciclos locales y explorar vecindarios más amplios; en instancias grandes esto suele traducirse en mejoras de magnitud mayor.
-- Control de diversificación/exploración: en GRASP el parámetro `alpha` controla cuánto azar introducir en la construcción; en instancias grandes un `alpha` bajo (0.1) produce soluciones iniciales relativamente buenas y consistentes. Sin embargo, TS puede explotar mejor buenas semillas y refinar soluciones con mayor efecto cuando el espacio de soluciones es grande.
-- Tiempo de ejecución vs ganancia: los tiempos medios reportados por los CSV de calibración muestran que las ejecuciones tienen tiempos comparables (orden de 10s por ejecución en calibraciones y ~30s en las comparaciones finales), por lo que las mejoras de TS no provienen de un mayor presupuesto de tiempo sino del propio método de búsqueda local.
+## Comparacion final
 
-3) Discrepancia entre conteo de `wins` y diferencia media (`mean_delta`)
-- Observación: en el grupo `large` el conteo de pares favorece a GRASP (wins_grasp = 30; wins_ts = 15) pero la `mean_delta_ts_minus_grasp` es negativa y de magnitud ≈ -25.1271.
-- Interpretación: estos dos indicadores miden cosas distintas. El conteo de `wins` registra en cuántas instancias un algoritmo obtuvo la mejor solución (por cantidad de pares), sin tener en cuenta la magnitud de la diferencia. La diferencia media (y la prueba de Wilcoxon) consideran la magnitud y la distribución de las diferencias emparejadas. Por tanto, es compatible que GRASP gane con pequeñas mejoras en más instancias, mientras que TS ofrezca grandes mejoras en menos instancias; la suma/mediana de esas diferencias puede resultar a favor de TS y dar un valor promedio negativo.
-- Resultado práctico: la significativa `pvalue = 0.002628` indica que la diferencia en la distribución de pares no es atribuible al azar; la dirección de `mean_delta` sugiere que, en términos de magnitud media de la mejora, TS es preferible en `large`.
- - Resultado práctico: la significativa `pvalue = 0.002628` indica que la diferencia en la distribución emparejada no es atribuible al azar; el `mean_delta_ts_minus_grasp` negativo indica que, en promedio, GRASP obtiene mejores valores de `of`. No obstante, el recuento de "best_of" y las `ts_best` muestran que TS alcanza el `best_known` en más ejecuciones concretas; por tanto, elegir entre GRASP o GRASP+TS depende de si se prioriza la calidad media o la probabilidad de obtener una solución cercana al óptimo.
+### Small
 
-4) Robustez y variabilidad
-- Las columnas `std_of` en los CSV de calibración muestran que en `small` la desviación estándar es 0.0 en muchas configuraciones (soluciones idénticas entre repeticiones). En `large` las `std_of` varían (ej. 20–50 en algunas instancias), lo que indica que la dispersión entre ejecuciones es apreciable.
-- El `avg_dev_pct` agregado resulta útil para comparar a nivel grupo: GRASP presenta valores alrededor de 0.25–0.58% según `alpha`, mientras que TS reduce esa desviación al rededor de 0.09–0.47% según `alpha` y `tenure` (mejor combinación en `large`: alpha=0.9, tenure=10 → ~0.0906%).
+Las 6 instancias pequenas producen 30 empates exactos en las 30 parejas de ejecucion. El test de Wilcoxon se omite porque todas las diferencias son cero.
 
-Conclusiones y recomendaciones
-1. Recomendación operativa de parámetros:
-  - Para instancias pequeñas (`small`, n≈100): usar configuraciones conservadoras por simplicidad: GRASP con `alpha = 0.1` es una buena opción por su estabilidad; añadir TS no aporta mejoras significativas dadas las condiciones experimentales. Si el objetivo es simplicidad y velocidad de implementación mantener sólo GRASP.
-  - Para instancias grandes (`large`, n≈500): preferir la variante con Tabu Search. De la calibración, la combinación recomendada es `alpha = 0.9` con `tenure = 10` (o tomar la recomendación del `alpha_sweep` y `tenure_sweep` que sugieren esa pareja), porque consigue la menor `avg_dev_pct` promedio (~0.0906%). Sin embargo, también hay evidencia de que GRASP con `alpha = 0.1` muestra buen comportamiento (más wins), por lo que una opción práctica es ejecutar ambas configuraciones en paralelo y seleccionar la mejor solución final.
+### Large
 
-2. Interpretación estadística:
-  - El test de Wilcoxon (p ≈ 0.0026) en el grupo `large` señala una diferencia estadísticamente significativa entre las distribuciones emparejadas de resultados; la dirección del `mean_delta_ts_minus_grasp` negativa indica que GRASP, en promedio, obtiene valores de `of` mejores que GRASP+TS en este conjunto.
-  - Para `small` no hay evidencia de diferencia (todos los pares empatados), por tanto no debe invertirse tiempo en optimizar parámetros para ese grupo salvo por requisitos específicos de tiempo/implementación.
+| Metrica | GRASP | GRASP+TS |
+| ------- | ----- | -------- |
+| Avg dev% | 0.6379% | 0.2284% |
+| Desviacion estandar media | 20.57 | 20.27 |
+| Best hits | 0 | 12 |
+| Paired wins | 8 | 36 |
+| Ties | - | 1 |
+| Mean delta (TS - GRASP) | - | +31.7891 |
+| Wilcoxon W | - | 79.0 |
+| Wilcoxon p-value | - | 8.24e-08 |
 
-3. Sugerencias para experimentación futura y verificación adicional:
-  - Aumentar el número de repeticiones por configuración para refinar intervalos de confianza y estimaciones de varianza, especialmente en `large` donde la dispersión es mayor.
-  - Reportar además de `avg_of` y `avg_dev_pct` medidas robustas como mediana, cuantiles y percentiles (p. ej. 25/75), para caracterizar casos con grandes saltos en rendimiento.
-  - Evaluar el coste/beneficio en tiempo real (ej. curvas calidad-tiempo) para comparar si la inclusión de TS sigue siendo ventajosa bajo presupuestos de tiempo más restrictivos.
-  - Realizar un análisis por instancia para identificar subclases de instancias donde GRASP o TS sean particularmente buenos (por topología, densidad, m, etc.).
+La direccion de la diferencia favorece a GRASP+TS. El valor medio de `TS - GRASP` es positivo y el test de Wilcoxon bilateral sobre las diferencias no nulas (`zero_method="wilcox"`) indica una diferencia estadisticamente significativa.
 
-Anexo: tablas rápidas (extracto de resultados)
+## Resultados por instancia grande
 
-- `calibration_summary.json` (valores clave):
-  - small:
-    - GRASP best_alpha = 0.1 → best_avg_dev_pct = 0.0
-    - TS best_alpha = 0.25, best_tenure = 15 → best_avg_dev_pct = 0.0
-  - large:
-    - GRASP best_alpha = 0.1 → best_avg_dev_pct = 0.2536
-    - TS best_alpha = 0.9, best_tenure = 10 → best_avg_dev_pct = 0.0906
+| Instancia | GRASP avg | TS avg | Delta TS-GRASP | Best observado | TS best hits |
+| --------- | --------- | ------ | -------------- | -------------- | ------------ |
+| MDG-a_2 | 7695.50 | 7729.77 | +34.27 | 7741.07 | 1 |
+| MDG-a_5 | 7697.35 | 7739.21 | +41.86 | 7755.23 | 2 |
+| MDG-a_6 | 7712.16 | 7754.04 | +41.88 | 7770.48 | 1 |
+| MDG-a_9 | 7730.84 | 7741.52 | +10.68 | 7758.44 | 1 |
+| MDG-a_13 | 7737.72 | 7761.13 | +23.41 | 7786.43 | 1 |
+| MDG-a_16 | 7739.38 | 7756.25 | +16.87 | 7792.77 | 1 |
+| MDG-a_17 | 7723.03 | 7772.74 | +49.71 | 7785.36 | 2 |
+| MDG-a_19 | 7702.49 | 7745.61 | +43.12 | 7755.41 | 2 |
+| MDG-a_20 | 7688.01 | 7712.33 | +24.32 | 7727.13 | 1 |
 
-- `calibration_grasp_summary.csv` (fragmento para `large`):
-  - alpha=0.1 → avg_dev_pct = 0.2536 (mean_avg_of ≈ 7694.55)
-  - alpha=0.25 → avg_dev_pct = 0.2868
-  - alpha=-1  → avg_dev_pct = 0.3373
-  - alpha=0.9 → avg_dev_pct = 0.5551
+GRASP+TS supera a GRASP en media en todas las instancias grandes del experimento actual.
 
-- `calibration_ts_summary.csv` (fragmento para `large`):
-  - alpha=0.9 (alpha_sweep, tenure=15) → avg_dev_pct = 0.1094
-  - tenure_sweep alpha=0.9, tenure=10 → avg_dev_pct = 0.0906 (mejor encontrado)
+## Graficas solicitadas por el profesor
 
-- `comparison_tests.json` (valores clave):
-  - overall: n_pairs=75, wins_grasp=30, wins_ts=15, ties=30, mean_delta_ts_minus_grasp=-15.0763, pvalue=0.002628
-  - small: skipped (todas las parejas empatadas)
-  - large: n_pairs=45, wins_grasp=30, wins_ts=15, ties=0, mean_delta_ts_minus_grasp=-25.1271, pvalue=0.002628
+### Evolucion interna de Tabu Search
 
-Notas finales y advertencias
-- Interpretación de señales opuestas (más `wins` vs mejor `mean_delta`): ambos son estadísticamente válidos; la decisión práctica debe considerar qué métrica interesa más: frecuencia de ganar (nº de instancias donde un método es mejor) o magnitud media de la mejora. Si se buscan ganancias grandes ocasionales, TS parece más apropiado; si se prefiere ganar con consistencia pequeña, GRASP puro (alpha bajo) puede ofrecer más wins.
-- Siempre confirmar la dirección del objetivo (minimizar o maximizar) con el equipo o la documentación del problema. En este conjunto de datos las columnas `avg_of` parecen representar el valor objetivo en la misma dirección para ambos algoritmos y la `avg_dev_pct` se calcula respecto a una referencia, por lo que la interpretación numérica de mejoras y desviaciones en este informe está basada en esos porcentajes mostrados en los archivos de calibración.
+`csv_final/ts_evolution_single_restart.csv` contiene 2586 iteraciones de una reiniciacion de Tabu Search. De ellas, 1403 son movimientos de empeoramiento (`was_worsening_move=True`). Esto demuestra la mecanica esperada: la solucion actual puede empeorar temporalmente, mientras el mejor global se conserva y mejora de forma escalonada.
 
-Si quieres, continúo con cualquiera de estas acciones:
-- Guardar este fichero en repo y hacer commit + push (lo puedo hacer ahora).
-- Generar tablas adicionales (CSV) con los resúmenes numéricos usados para tablas del documento.
-- Hacer gráficos (calidad vs parámetros, histogramas de diferencias, boxplots para `large`) y añadir las figuras al informe.
+Figura asociada: `csv_final/ts_evolution_plot.png`.
 
---
-*Fin del informe generado automáticamente a partir de los archivos en `experiments`.*
+### Curvas con mas tiempo
+
+`csv_final/convergence_curves_large.csv` compara GRASP y GRASP+TS durante 180 segundos por algoritmo en dos instancias grandes representativas.
+
+| Instancia | GRASP final | GRASP+TS final |
+| --------- | ----------- | -------------- |
+| MDG-a_16 | 7748.58 | 7789.24 |
+| MDG-a_13 | 7755.63 | 7798.43 |
+
+Figura asociada: `csv_final/convergence_curves_large.png`.
+
+## Conclusiones
+
+1. En instancias pequenas, GRASP y GRASP+TS son indistinguibles bajo el presupuesto actual.
+2. En instancias grandes, GRASP+TS domina los resultados actuales: menor desviacion media, mas wins pareados, mas mejores observados y Wilcoxon significativo.
+3. La traza interna de Tabu Search muestra movimientos de empeoramiento, que son necesarios para escapar de optimos locales.
+4. Las curvas a 180 segundos muestran que GRASP+TS sigue mejorando cuando recibe mas tiempo, especialmente dentro de fases largas de busqueda tabu.

@@ -5,8 +5,11 @@
     "wins_ts": 36,
     "ties": 31,
     "mean_delta_ts_minus_grasp": 19.0735,
-    "status": "unavailable",
-    "reason": "scipy_not_installed"
+    "status": "ok",
+    "test": "wilcoxon",
+    "non_zero_pairs": 44,
+    "statistic": 79.0,
+    "pvalue": 8.24e-08
   },
   "small": {
     "n_pairs": 30,
@@ -23,7 +26,10 @@
     "wins_ts": 36,
     "ties": 1,
     "mean_delta_ts_minus_grasp": 31.7891,
-    "status": "unavailable",
-    "reason": "scipy_not_installed"
+    "status": "ok",
+    "test": "wilcoxon",
+    "non_zero_pairs": 44,
+    "statistic": 79.0,
+    "pvalue": 8.24e-08
   }
 }
