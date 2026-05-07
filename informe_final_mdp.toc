@@ -1,0 +1,24 @@
+\contentsline {section}{\numberline {1}Introduccion}{1}{section.1}%
+\contentsline {section}{\numberline {2}Algoritmos implementados}{1}{section.2}%
+\contentsline {subsection}{\numberline {2.1}GRASP}{1}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Busqueda Tabu}{2}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}GRASP con Busqueda Tabu}{2}{subsection.2.3}%
+\contentsline {section}{\numberline {3}Decisiones de implementacion}{2}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Representacion de soluciones}{2}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Control de tiempo}{3}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Telemetria de convergencia}{3}{subsection.3.3}%
+\contentsline {section}{\numberline {4}Dificultades encontradas}{3}{section.4}%
+\contentsline {section}{\numberline {5}Diseno experimental}{4}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Fases}{4}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Parametros calibrados}{4}{subsection.5.2}%
+\contentsline {section}{\numberline {6}Resultados}{4}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Instancias pequenas}{4}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}Instancias grandes}{5}{subsection.6.2}%
+\contentsline {subsection}{\numberline {6.3}Resumen agregado}{5}{subsection.6.3}%
+\contentsline {section}{\numberline {7}Analisis visual solicitado}{5}{section.7}%
+\contentsline {subsection}{\numberline {7.1}Evolucion interna de Busqueda Tabu}{5}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}Efecto de ampliar el tiempo}{6}{subsection.7.2}%
+\contentsline {section}{\numberline {8}Discusion}{6}{section.8}%
+\contentsline {section}{\numberline {9}Limitaciones}{8}{section.9}%
+\contentsline {section}{\numberline {10}Conclusiones}{8}{section.10}%
+\contentsline {section}{\numberline {A}Ficheros reproducibles}{9}{appendix.A}%

@@ -35,6 +35,8 @@ This file is an index of all messages in the `messages/` folder. Every AI that a
 | [from-gpt-10.md](from-gpt-10.md) | GPT-5 Codex (OpenAI) | 2026-04-30 | Implemented GRASP+TS internal convergence tracking and time-analysis scripts | implemented |
 | [from-gpt-11.md](from-gpt-11.md) | GPT-5 Codex (OpenAI) | 2026-05-07 | Reconciled refreshed results, reports, Excel exports, figures, and AI message state | implemented |
 | [from-gpt-12.md](from-gpt-12.md) | GPT-5 Codex (OpenAI) | 2026-05-07 | Final report material map and legacy artifact quarantine | implemented |
+| [from-gpt-13.md](from-gpt-13.md) | GPT-5 Codex (OpenAI) | 2026-05-07 | Final LaTeX report drafted with current figures and refreshed conclusions | implemented |
+| [from-gpt-14.md](from-gpt-14.md) | GPT-5 Codex (OpenAI) | 2026-05-07 | Final LaTeX report compiled to PDF | implemented |
 
 ---
 
