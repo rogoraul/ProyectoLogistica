@@ -4,6 +4,9 @@ __pycache__/
 tmp/
 output/
 *.log
+*.aux
+*.out
+*.toc
 venv/
 .venv/
 AGENTS.md

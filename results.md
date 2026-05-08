@@ -136,8 +136,8 @@ Observed final best values:
 
 | Instance | GRASP final best | GRASP+TS final best |
 | -------- | ---------------- | ------------------- |
-| MDG-a_16 | 7748.58 | **7789.24** |
-| MDG-a_13 | 7755.63 | **7798.43** |
+| MDG-a_16 | 7726.43 | **7792.77** |
+| MDG-a_13 | 7734.12 | **7798.43** |
 
 The long-run curves support the same conclusion as the 30-second comparison: GRASP+TS continues finding improvements inside long Tabu Search phases and reaches higher best-so-far values on the representative large instances.
 

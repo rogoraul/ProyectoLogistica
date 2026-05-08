@@ -152,8 +152,8 @@ El experimento `experiments/time_analysis.py` ejecuta GRASP y GRASP+TS durante 1
 
 | Instancia | GRASP final | GRASP+TS final |
 | --------- | ----------- | -------------- |
-| MDG-a_16 | 7748.58 | 7789.24 |
-| MDG-a_13 | 7755.63 | 7798.43 |
+| MDG-a_16 | 7726.43 | 7792.77 |
+| MDG-a_13 | 7734.12 | 7798.43 |
 
 Figura asociada: `csv_final/convergence_curves_large.png`.
 

@@ -17,6 +17,7 @@ def tryImprove(sol):
 
 
 def selectInterchange(sol):
+    # Exhaustive best-improvement over all selected/non-selected 1-1 swaps.
     n = sol['instance']['n']
     sel = -1
     bestSel = 0

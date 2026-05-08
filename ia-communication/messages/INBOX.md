@@ -38,7 +38,9 @@ This file is an index of all messages in the `messages/` folder. Every AI that a
 | [from-gpt-13.md](from-gpt-13.md) | GPT-5 Codex (OpenAI) | 2026-05-07 | Final LaTeX report drafted with current figures and refreshed conclusions | implemented |
 | [from-gpt-14.md](from-gpt-14.md) | GPT-5 Codex (OpenAI) | 2026-05-07 | Final LaTeX report compiled to PDF | implemented |
 | [from-gpt-15.md](from-gpt-15.md) | GPT-5 Codex (OpenAI) | 2026-05-08 | Spanish characters restored in final LaTeX report and PDF | implemented |
-| [from-gpt-16.md](from-gpt-16.md) | GPT-5 Codex (OpenAI) | 2026-05-08 | Academic review against Rafa original code and required final fixes | open |
+| [from-gpt-16.md](from-gpt-16.md) | GPT-5 Codex (OpenAI) | 2026-05-08 | Academic review against Rafa original code and required final fixes | implemented |
+| [from-gpt-17.md](from-gpt-17.md) | GPT-5 Codex (OpenAI) | 2026-05-08 | Final report aligned with Rafa-code review and regenerated 180s convergence data | implemented |
+| [from-gpt-18.md](from-gpt-18.md) | GPT-5 Codex (OpenAI) | 2026-05-08 | Final report rebuilt as concise English mini paper for Rafa expectations | implemented |
 
 ---
 

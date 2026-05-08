@@ -2,15 +2,13 @@
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage[a4paper,margin=3cm]{geometry}
 \usepackage{amsmath}
-\usepackage{amssymb}
 \usepackage{array}
 \usepackage{booktabs}
 \usepackage{caption}
 \usepackage{graphicx}
 \usepackage{hyperref}
-\usepackage{longtable}
 \usepackage{url}
 
 \hypersetup{
@@ -20,361 +18,235 @@
     citecolor=black
 }
 
-\newcommand{\mdp}{Problema de la Máxima Diversidad}
+\setlength{\emergencystretch}{2em}
+\setlength{\parskip}{0.5em}
+\setlength{\parindent}{0pt}
+\linespread{1.08}
+
+\newcommand{\mdp}{Maximum Diversity Problem}
 \newcommand{\grasp}{GRASP}
 \newcommand{\graspTS}{GRASP+TS}
-\newcommand{\tabu}{Búsqueda Tabú}
-\renewcommand{\abstractname}{Resumen}
-\renewcommand{\contentsname}{Índice}
-\renewcommand{\tablename}{Tabla}
-\renewcommand{\figurename}{Figura}
-\setlength{\emergencystretch}{2em}
+\newcommand{\tabu}{Tabu Search}
 
-\title{\textbf{Metaheurísticas para el \mdp}\\
-\large Comparación de GRASP y GRASP con Búsqueda Tabú}
-\author{Carlos Gómez Sáez \and Raúl Rodríguez Gómez}
-\date{Mayo de 2026}
+\title{\textbf{GRASP and Tabu Search for the Maximum Diversity Problem}}
+\author{Carlos Gomez Saez \and Raul Rodriguez Gomez}
+\date{Data Based Logistics -- May 2026}
 
 \begin{document}
 
-\pagenumbering{gobble}
-\begin{titlepage}
-    \centering
-    \vspace*{2cm}
-    {\Large Logística Basada en Datos\par}
-    \vspace{1.5cm}
-    {\Huge\bfseries Metaheurísticas para el Problema de la Máxima Diversidad\par}
-    \vspace{0.5cm}
-    {\Large GRASP y GRASP combinado con Búsqueda Tabú\par}
-    \vspace{2cm}
-    {\large Carlos Gómez Sáez\par}
-    {\large Raúl Rodríguez Gómez\par}
-    \vfill
-    {\large Mayo de 2026\par}
-\end{titlepage}
+\maketitle
 
-\pagenumbering{roman}
 \begin{abstract}
-Este informe estudia el \mdp{} mediante dos enfoques metaheurísticos: un \grasp{} con búsqueda local exhaustiva de mejor mejora y una variante \graspTS{} que sustituye la fase de mejora por \tabu{}. El trabajo incluye calibración de parámetros, comparación experimental bajo presupuestos de tiempo iguales y dos análisis visuales solicitados por el profesor: la evolución interna de \tabu{} y el efecto de ampliar el tiempo de ejecución en instancias grandes. Los resultados actualizados muestran que ambas variantes empatan en instancias pequeñas, mientras que \graspTS{} supera de forma clara y estadísticamente significativa a \grasp{} en instancias grandes.
+This project studies the \mdp{} using the classroom \grasp{} framework as baseline and a \grasp{} combined with \tabu{} as the proposed method. The main contribution is not a generic description of metaheuristics, but an implementation and experimental comparison of a short-term memory search procedure on the original MDG instances. The final data show that both methods tie on the small instances, while \graspTS{} clearly improves the baseline on the large instances under the calibrated parameters and the same time budget.
 \end{abstract}
 
-\tableofcontents
-\newpage
-\pagenumbering{arabic}
+\section{Introduction}
 
-\section{Introducción}
+The goal of the project is to solve the \mdp{} with metaheuristics and to evaluate whether adding \tabu{} improves the \grasp{} method used as reference in class. \tabu{} was chosen as the project extension instead of Path Relinking. The report focuses on the implemented method, the calibration decisions, and the computational evidence.
 
-El \mdp{} consiste en seleccionar exactamente \(p\) elementos de un conjunto de \(n\) candidatos maximizando la diversidad interna del subconjunto. Si \(d_{ij}\) representa la distancia entre los elementos \(i\) y \(j\), el objetivo puede expresarse como:
+The final comparison uses the 15 original MDG-a instances: 6 small instances with \(n=100\), \(m=10\), and 9 large instances with \(n=500\), \(m=50\). All runs are time-limited, so the comparison is based on equal wall-clock conditions rather than a fixed number of iterations.
 
-\begin{equation}
-\max \sum_{i=1}^{n-1}\sum_{j=i+1}^{n} d_{ij} x_i x_j
-\end{equation}
+\section{Problem Description}
+
+Given \(n\) elements and pairwise distances \(d_{ij}\), the \mdp{} asks for a subset \(S\) of exactly \(m\) elements maximizing the sum of distances between all selected pairs:
 
 \begin{equation}
-\sum_{i=1}^{n} x_i = p,
+\max \sum_{i<j} d_{ij} x_i x_j,
 \qquad
-x_i \in \{0,1\}
+\sum_i x_i = m,
+\qquad
+x_i \in \{0,1\}.
 \end{equation}
 
-La variable binaria \(x_i\) indica si el elemento \(i\) pertenece a la solución. El problema es NP-difícil, por lo que una resolución exacta deja de ser práctica al crecer el tamaño de las instancias. Por ese motivo se emplean metaheurísticas capaces de obtener soluciones de alta calidad en tiempos razonables.
+The problem is a maximization problem. In the experiments, the reference value \(BK\) is the best value observed in the current runs for each instance. Relative deviation is computed as:
 
-En este proyecto se usan instancias de la familia MDG-a, con dos grupos de tamaño:
+\begin{equation}
+\mathrm{Dev} = \frac{BK - \mathrm{MethodValue}}{BK}\cdot 100.
+\end{equation}
 
-\begin{table}[htbp]
-\centering
-\caption{Conjunto de instancias empleado en la comparación final.}
-\begin{tabular}{lccc}
-\toprule
-Grupo & \(n\) & \(p\) & Número de instancias \\
-\midrule
-Pequeñas & 100 & 10 & 6 \\
-Grandes & 500 & 50 & 9 \\
-\bottomrule
-\end{tabular}
-\end{table}
+Lower deviation is better. A deviation of \(0\%\) means that the method reached the best observed value for that instance.
 
-El objetivo experimental no es solo obtener valores altos de función objetivo, sino responder a una pregunta metodológica: bajo un presupuesto temporal comparable, cuánto aporta \tabu{} frente a un \grasp{} bien calibrado y con una búsqueda local fuerte.
+\section{Baseline GRASP}
 
-\section{Algoritmos implementados}
+The baseline is the \grasp{} structure provided in class: each restart builds a solution with a greedy-randomized construction and then applies local search. The construction uses a Restricted Candidate List controlled by the parameter \(\alpha\). Low values of \(\alpha\) are greedier; high values are more random. The value \(\alpha=-1\) means that the construction samples a random alpha value.
 
-\subsection{GRASP}
+Most of the original classroom structure is preserved: instance reading, solution representation, incremental objective updates, constructive logic, and the multi-start organization. The important change is the local search used in the final baseline. The classroom version selected the element with the smallest contribution and searched for its best replacement. The current version evaluates all selected/non-selected one-out one-in swaps and applies the best positive delta. Therefore, the baseline is a strengthened \grasp{}, not a weak reference method.
 
-\grasp{} (\textit{Greedy Randomized Adaptive Search Procedure}) combina una fase constructiva greedy-aleatoria con una fase de mejora local. En la construcción, cada paso calcula la contribución marginal de los candidatos no seleccionados y forma una lista restringida de candidatos. El parámetro \(\alpha\) controla la amplitud de esta lista:
+\section{Tabu Search Method}
+
+The proposed method is \graspTS{}. Each restart first generates an initial solution using the same \grasp{} construction. Then \tabu{} improves that solution while respecting the remaining global time budget.
+
+The move is a one-out one-in exchange: one selected node leaves the solution and one non-selected node enters. The neighborhood is complete: at each iteration, the algorithm scans all selected/non-selected pairs and chooses the best admissible move. Unlike standard improving local search, \tabu{} can accept worsening moves. This is necessary to leave local optima and explore new regions.
+
+The implementation keeps two tabu memories:
 
 \begin{itemize}
-    \item valores bajos de \(\alpha\) producen construcciones más voraces;
-    \item valores altos de \(\alpha\) aumentan la aleatoriedad y la exploración;
-    \item el valor especial \(\alpha=-1\) activa una selección aleatoria de \(\alpha\) durante la construcción.
+    \item \texttt{tabu\_out}: nodes recently removed from the solution cannot immediately re-enter;
+    \item \texttt{tabu\_in}: nodes recently inserted into the solution cannot immediately leave.
 \end{itemize}
 
-Tras construir una solución factible, se aplica búsqueda local por intercambio \(1\)-\(1\): se prueba sacar un nodo seleccionado e introducir uno no seleccionado. La variante utilizada es de mejor mejora, por lo que examina todo el vecindario y aplica el intercambio con mayor ganancia positiva. El proceso termina cuando no existe ningún intercambio que mejore la función objetivo.
+This bidirectional memory avoids simple cycles. The tabu tenure is dynamic: in each iteration it is sampled between the calibrated tenure and approximately \(1.5\) times that value. A tabu move can still be accepted by aspiration if it improves the best global solution. The algorithm stops when the time limit is reached or after a maximum number of iterations without improvement. The best global solution is stored separately and returned at the end.
 
-\subsection{Búsqueda Tabú}
+The implemented \graspTS{} loop can be summarized as follows:
 
-\tabu{} usa el mismo vecindario de intercambio, pero cambia la regla de movimiento. A diferencia de la búsqueda local clásica, puede aceptar movimientos que empeoran temporalmente la solución actual. La memoria tabú evita volver inmediatamente a soluciones recientes, de modo que el algoritmo puede escapar de óptimos locales.
+\begin{enumerate}
+    \item Build an initial feasible solution with the GRASP constructive phase.
+    \item Initialize the current solution and the best global solution.
+    \item Scan all one-out one-in swaps and select the best admissible move.
+    \item If a move is tabu, accept it only if it satisfies aspiration.
+    \item Apply the move, update the current objective value, and update both tabu lists.
+    \item If the current solution improves the best global value, store a copy of it.
+    \item Stop when the time budget or the no-improvement limit is reached.
+\end{enumerate}
 
-La implementación actual incluye:
+\section{Implementation Details}
+
+Solutions are represented as Python dictionaries with a set of selected nodes, the current objective value, and a pointer to the instance. The selected nodes are stored in a \texttt{set}, which makes membership checks efficient during neighborhood scans.
+
+The objective function is updated incrementally. When a node leaves the solution, its marginal contribution is subtracted; when a node enters, its contribution to the remaining selected set is added. This avoids recomputing the full pairwise sum after every move.
+
+The main implementation decisions were:
 
 \begin{itemize}
-    \item memoria tabú bidireccional: los elementos que salen no pueden reentrar inmediatamente y los que entran no pueden salir inmediatamente;
-    \item listas FIFO de corto plazo;
-    \item tenure dinámico entre el valor calibrado y aproximadamente \(1.5\) veces ese valor;
-    \item criterio de aspiración, que permite aceptar un movimiento tabú si mejora el mejor valor global conocido;
-    \item control de tiempo global, heredado del envoltorio \graspTS{};
-    \item telemetría interna de mejoras estrictas para generar curvas de convergencia reales.
+    \item use the same construction logic for both methods, so the comparison isolates the improvement phase;
+    \item strengthen the \grasp{} baseline with exhaustive best-improvement local search;
+    \item use complete one-out one-in neighborhoods in both local search and \tabu{};
+    \item implement bidirectional tabu memory with readable FIFO lists instead of a more complex data structure;
+    \item pass the remaining global time from the \graspTS{} wrapper to the internal \tabu{} phase;
+    \item record convergence information whenever a new global best is found inside \tabu{}.
 \end{itemize}
 
-\subsection{GRASP con Búsqueda Tabú}
+The main difficulties were time control and avoiding misleading convergence plots. A first version only registered the value after a whole \tabu{} phase, hiding improvements that happened inside it. The final version logs internal improvements with their elapsed time.
 
-La variante \graspTS{} mantiene la fase constructiva de \grasp{}, pero usa \tabu{} como fase principal de intensificación. Cada reinicio construye una solución inicial, reserva el tiempo restante del presupuesto global y ejecuta \tabu{} dentro de ese límite. De esta forma ambos algoritmos se comparan bajo la misma restricción de tiempo de pared.
+Another important decision was how to keep the code close to the classroom baseline. The project did not rewrite the instance format, the constructive procedure, or the solution operations. This makes the final comparison easier to interpret: the main experimental question is whether replacing the improvement phase with \tabu{} adds value.
 
-El pseudocódigo conceptual es:
+Results are stored in CSV files so the same data can be used for tables, statistical tests, Excel exports, and plots. The final comparison stores both aggregate rows per instance and individual paired runs. This was necessary for the Wilcoxon test, because stochastic runs should be compared by matched seed index instead of only by global averages.
 
-\begin{verbatim}
-best = None
-start = wall_clock()
+\section{Parameter Calibration}
 
-while wall_clock() - start < TIME_LIMIT:
-    s = construir_solucion_grasp(instance, alpha)
-    remaining = TIME_LIMIT - (wall_clock() - start)
-    s = tabu_search(s, tenure, remaining)
-    if best is None or s.objective > best.objective:
-        best = s
+Calibration was performed before the final comparison. The tested values were:
 
-return best
-\end{verbatim}
+\begin{itemize}
+    \item \(\alpha \in \{0.1, 0.25, 0.5, 0.75, 0.9, -1\}\);
+    \item tabu tenure \(\in \{5, 10, 15, 20, 25, 30\}\).
+\end{itemize}
 
-\section{Decisiones de implementación}
-
-\subsection{Representación de soluciones}
-
-Cada solución se representa como un diccionario Python con tres campos principales:
-
-\begin{verbatim}
-sol = {
-    "sol": set(),
-    "of": 0.0,
-    "instance": inst,
-}
-\end{verbatim}
-
-El uso de un \texttt{set} permite comprobar pertenencia en tiempo medio constante. La función objetivo se actualiza de forma incremental al aplicar intercambios: al sacar un nodo se resta su contribución marginal y al introducir otro se suma su nueva contribución respecto al conjunto resultante. Esta decisión evita recalcular desde cero todas las distancias internas de la solución.
-
-\subsection{Control de tiempo}
-
-La comparación final se basa en tiempo de pared, no en número fijo de iteraciones. Esto es importante porque \grasp{} y \graspTS{} distribuyen el esfuerzo de forma distinta. \grasp{} completa más reinicios independientes; \graspTS{} invierte más tiempo en intensificar cada trayectoria. Para mantener una comparación justa, el presupuesto temporal se gestiona de forma global y \tabu{} recibe únicamente el tiempo restante.
-
-\subsection{Telemetría de convergencia}
-
-Durante la fase final del proyecto se detectó que la curva de convergencia de \graspTS{} no reflejaba las mejoras internas ocurridas dentro de \tabu{}. El algoritmo solo registraba un punto al final de la fase tabú, lo que ocultaba la evolución real. La implementación actual corrige este problema: cada vez que \tabu{} encuentra una mejora estricta del mejor global, registra el instante y el nuevo valor objetivo. Esta corrección es esencial para responder al análisis solicitado sobre el efecto del tiempo.
-
-\section{Dificultades encontradas}
-
-La primera dificultad relevante estuvo en la lectura de instancias. Los ficheros MDG-a proporcionan distancias de pares no dirigidos, por lo que el lector debe reflejar cada valor en una matriz simétrica. Un error en esa simetría afecta directamente a la construcción, a la evaluación de intercambios y a la función objetivo.
-
-La segunda dificultad fue el control de tiempo. \tabu{} no se detiene de forma natural en un óptimo local; puede seguir moviéndose aun cuando la solución actual empeora. Sin comprobaciones internas de tiempo, la variante \graspTS{} podría exceder el presupuesto asignado y perder comparabilidad frente al \grasp{} base.
-
-La tercera dificultad fue la calibración. Un barrido conjunto completo de todos los valores de \(\alpha\) y tenure habría aumentado mucho el coste computacional. Por ello se usó una calibración secuencial: primero se calibra \(\alpha\) con un tenure ancla y después se calibra tenure fijando el mejor \(\alpha\). Esta estrategia reduce coste y mantiene una interpretación clara de los resultados.
-
-Por último, \tabu{} exigió corregir la memoria de corto plazo. Una lista tabú unidireccional podía permitir oscilaciones demasiado inmediatas. La versión final usa memoria bidireccional y tenure dinámico, lo que mejora la estabilidad del comportamiento observado en instancias grandes.
-
-\section{Diseño experimental}
-
-\subsection{Fases}
-
-El flujo experimental queda dividido en tres fases:
+The calibration used 10 seconds per run and 3 runs per configuration. The criterion was average relative deviation. The \graspTS{} calibration was sequential: first \(\alpha\) was tested with tenure fixed at 15, and then tenure was tested using the selected \(\alpha\).
 
 \begin{table}[htbp]
 \centering
-\caption{Protocolo experimental.}
-\small
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{@{}p{3cm}p{2.7cm}p{3cm}p{6cm}@{}}
-\toprule
-Fase & Tiempo por ejecución & Repeticiones & Objetivo \\
-\midrule
-Calibración & 10 s & 3 por configuración & Seleccionar \(\alpha\) y tenure por grupo de instancias. \\
-Comparación final & 30 s & 5 por instancia y algoritmo & Comparar \grasp{} y \graspTS{} con parámetros calibrados. \\
-Curvas largas & 180 s & 1 por instancia y algoritmo & Analizar el efecto de dar más tiempo en instancias grandes. \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-La comparación final usa semillas emparejadas por índice de ejecución, lo que permite comparar ambos algoritmos en condiciones estocásticas equivalentes. Para las instancias grandes se aplica el test no paramétrico de Wilcoxon signed-rank sobre las diferencias emparejadas no nulas.
-
-\subsection{Parámetros calibrados}
-
-Los parámetros seleccionados se obtienen de \path{experiments/calibration_summary.json}. Los resultados actuales son:
-
-\begin{table}[htbp]
-\centering
-\caption{Parámetros seleccionados tras la calibración.}
+\caption{Selected calibrated parameters.}
 \begin{tabular}{lccc}
 \toprule
-Grupo & \(\alpha\) de \grasp{} & \(\alpha\) de \graspTS{} & Tenure de \graspTS{} \\
+Group & \(\alpha\) for \grasp{} & \(\alpha\) for \graspTS{} & Tabu tenure \\
 \midrule
-Pequeñas & 0.1 & -1 & 5 \\
-Grandes & 0.1 & 0.1 & 10 \\
+Small & 0.1 & -1 & 5 \\
+Large & 0.1 & 0.1 & 10 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-En instancias pequeñas la calibración satura: muchas configuraciones alcanzan desviación media cero. En instancias grandes, la selección es más informativa. El \grasp{} base prefiere construcciones voraces (\(\alpha=0.1\)), y la versión \graspTS{} también queda finalmente con \(\alpha=0.1\), pero obtiene su mejor comportamiento con tenure 10.
+Small instances were saturated during calibration, so several configurations reached zero deviation. The large instances were more informative: the selected \graspTS{} setting was \(\alpha=0.1\), tenure \(=10\).
 
-\section{Resultados}
+The calibration result is relevant because it prevents an unfair comparison. A poorly chosen tenure can either make \tabu{} cycle too quickly or block useful moves for too long. In the final large-instance setting, tenure \(=10\) gives enough memory to avoid immediate reversals without over-constraining the search.
 
-\subsection{Instancias pequeñas}
+\section{Computational Results}
 
-En las 6 instancias pequeñas, con 5 semillas por instancia, los 30 pares de ejecución terminan en empate exacto. Ambas variantes alcanzan el mismo mejor valor observado y el test de Wilcoxon se omite porque todas las diferencias son cero. La interpretación es directa: bajo 30 segundos, el grupo \(n=100\), \(p=10\) queda saturado y \tabu{} no aporta una mejora medible.
-
-\subsection{Instancias grandes}
-
-La Tabla \ref{tab:large-comparison} resume la comparación en las 9 instancias grandes. El valor BK se define como el mejor valor observado en las ejecuciones actuales de ambos algoritmos, no como un óptimo externo de literatura.
+The final comparison used 30 seconds per run and 5 paired runs per instance and method. The small instances are fully saturated: all 30 paired runs are exact ties. The large instances show a clear advantage for \graspTS{}.
 
 \begin{table}[htbp]
 \centering
-\caption{Comparación final en instancias grandes.}
-\label{tab:large-comparison}
-\scriptsize
-\setlength{\tabcolsep}{3pt}
-\begin{tabular}{@{}lrrrrrr@{}}
+\caption{Per-instance final comparison. Average times are in seconds.}
+\tiny
+\setlength{\tabcolsep}{2pt}
+\begin{tabular}{@{}lrrrrrrrr@{}}
 \toprule
-Instancia & \grasp{} avg & \graspTS{} avg & Delta & BK & Hits \grasp{} & Hits \graspTS{} \\
+Instance & BK & G avg & G dev & G time & TS avg & TS dev & TS time & TS hits \\
 \midrule
-\texttt{MDG-a\_2}  & 7695.50 & 7729.77 & +34.27 & 7741.07 & 0 & 1 \\
-\texttt{MDG-a\_5}  & 7697.35 & 7739.21 & +41.86 & 7755.23 & 0 & 2 \\
-\texttt{MDG-a\_6}  & 7712.16 & 7754.04 & +41.88 & 7770.48 & 0 & 1 \\
-\texttt{MDG-a\_9}  & 7730.84 & 7741.52 & +10.68 & 7758.44 & 0 & 1 \\
-\texttt{MDG-a\_13} & 7737.72 & 7761.13 & +23.41 & 7786.43 & 0 & 1 \\
-\texttt{MDG-a\_16} & 7739.38 & 7756.25 & +16.87 & 7792.77 & 0 & 1 \\
-\texttt{MDG-a\_17} & 7723.03 & 7772.74 & +49.71 & 7785.36 & 0 & 2 \\
-\texttt{MDG-a\_19} & 7702.49 & 7745.61 & +43.12 & 7755.41 & 0 & 2 \\
-\texttt{MDG-a\_20} & 7688.01 & 7712.33 & +24.32 & 7727.13 & 0 & 1 \\
+MDG-a\_1\_100\_m10 & 360.15 & 360.15 & 0.0000\% & 30.00 & 360.15 & 0.0000\% & 30.00 & 5 \\
+MDG-a\_4\_100\_m10 & 355.72 & 355.72 & 0.0000\% & 30.00 & 355.72 & 0.0000\% & 30.00 & 5 \\
+MDG-a\_10\_100\_m10 & 355.50 & 355.50 & 0.0000\% & 30.00 & 355.50 & 0.0000\% & 30.00 & 5 \\
+MDG-a\_12\_100\_m10 & 354.25 & 354.25 & 0.0000\% & 30.00 & 354.25 & 0.0000\% & 30.00 & 5 \\
+MDG-a\_14\_100\_m10 & 356.06 & 356.06 & 0.0000\% & 30.00 & 356.06 & 0.0000\% & 30.00 & 5 \\
+MDG-a\_20\_100\_m10 & 349.31 & 349.31 & 0.0000\% & 30.00 & 349.31 & 0.0000\% & 30.00 & 5 \\
+MDG-a\_2\_n500\_m50 & 7741.07 & 7695.50 & 0.5887\% & 30.46 & 7729.77 & 0.1460\% & 30.02 & 1 \\
+MDG-a\_5\_n500\_m50 & 7755.23 & 7697.35 & 0.7463\% & 30.34 & 7739.21 & 0.2066\% & 30.02 & 2 \\
+MDG-a\_6\_n500\_m50 & 7770.48 & 7712.16 & 0.7505\% & 30.31 & 7754.04 & 0.2116\% & 30.03 & 1 \\
+MDG-a\_9\_n500\_m50 & 7758.44 & 7730.84 & 0.3557\% & 30.24 & 7741.52 & 0.2181\% & 30.03 & 1 \\
+MDG-a\_13\_n500\_m50 & 7786.43 & 7737.72 & 0.6256\% & 30.35 & 7761.13 & 0.3249\% & 30.02 & 1 \\
+MDG-a\_16\_n500\_m50 & 7792.77 & 7739.38 & 0.6851\% & 30.27 & 7756.25 & 0.4686\% & 30.04 & 1 \\
+MDG-a\_17\_n500\_m50 & 7785.36 & 7723.03 & 0.8006\% & 30.50 & 7772.74 & 0.1621\% & 30.03 & 2 \\
+MDG-a\_19\_n500\_m50 & 7755.41 & 7702.49 & 0.6824\% & 30.46 & 7745.61 & 0.1264\% & 30.02 & 2 \\
+MDG-a\_20\_n500\_m50 & 7727.13 & 7688.01 & 0.5063\% & 30.44 & 7712.33 & 0.1915\% & 30.03 & 1 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-La diferencia es positiva en todas las instancias grandes: \graspTS{} obtiene una media superior a \grasp{} en cada una de ellas.
-
-\subsection{Resumen agregado}
-
 \begin{table}[htbp]
 \centering
-\caption{Resumen agregado de la comparación en instancias grandes.}
+\caption{Aggregate results on large instances.}
 \begin{tabular}{lcc}
 \toprule
-Métrica & \grasp{} & \graspTS{} \\
+Metric & \grasp{} & \graspTS{} \\
 \midrule
-Desviación media & 0.6379\% & 0.2284\% \\
-Desviación estándar media & 20.57 & 20.27 \\
-Mejores observados alcanzados & 0 & 12 \\
-Victorias emparejadas & 8 & 36 \\
-Empates & \multicolumn{2}{c}{1} \\
-Delta medio \graspTS{}-\grasp{} & -- & +31.7891 \\
-Wilcoxon \(W\) & -- & 79.0 \\
-Wilcoxon \(p\)-valor & -- & \(8.24\cdot 10^{-8}\) \\
+Average deviation & 0.6379\% & 0.2284\% \\
+Mean standard deviation & 20.57 & 20.27 \\
+Best hits & 0 & 12 \\
+Paired wins & 8 & 36 \\
+Ties & \multicolumn{2}{c}{1} \\
+Mean delta TS--GRASP & -- & +31.7891 \\
+Wilcoxon \(p\)-value & -- & \(8.24\cdot 10^{-8}\) \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-El test de Wilcoxon signed-rank bilateral se calcula sobre los 44 pares no empatados del grupo grande. El resultado es estadísticamente significativo y la dirección del delta medio favorece a \graspTS{}. La conclusión experimental actual, por tanto, corrige la lectura anterior del proyecto: con la implementación corregida y los datos regenerados, \tabu{} sí aporta valor en instancias grandes.
-
-\section{Análisis visual solicitado}
-
-\subsection{Evolución interna de Búsqueda Tabú}
-
-El fichero \path{csv_final/ts_evolution_single_restart.csv} registra una reiniciación individual de \tabu{}. Contiene 2586 iteraciones, de las cuales 1403 son movimientos de empeoramiento. Esta traza muestra el mecanismo característico de \tabu{}: la solución actual puede disminuir temporalmente, mientras que el mejor global se conserva y solo mejora por escalones.
+Two additional plots were generated to understand the behavior of \tabu{}.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{csv_final/ts_evolution_plot.png}
-\caption{Evolución interna de \tabu{}. La solución actual oscila y acepta empeoramientos, mientras el mejor global mantiene una evolución no decreciente.}
-\label{fig:ts-evolution}
+\caption{Internal evolution of one Tabu Search restart. The current solution can worsen temporarily, while the best global value is non-decreasing.}
 \end{figure}
 
-La Figura \ref{fig:ts-evolution} responde a la primera petición del profesor: visualizar que \tabu{} no se limita a una búsqueda local voraz, sino que acepta pasos de empeoramiento para escapar de regiones localmente óptimas.
+The trace contains 2586 iterations, including 1403 worsening moves. This confirms that the implemented \tabu{} is not just a greedy local search; it actively accepts worsening moves to escape local optima.
 
-\subsection{Efecto de ampliar el tiempo}
+\clearpage
 
-Para estudiar el efecto del tiempo se ejecutaron \grasp{} y \graspTS{} durante 180 segundos por algoritmo en dos instancias grandes representativas: \texttt{MDG-a\_16\_n500\_m50.txt} y \texttt{MDG-a\_13\_n500\_m50.txt}. Los valores finales observados fueron:
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{csv_final/convergence_curves_large.png}
+\caption{Convergence over 180 seconds on two large instances.}
+\end{figure}
+
+With 180 seconds, \graspTS{} reached 7792.77 on MDG-a\_16 and 7798.43 on MDG-a\_13, while \grasp{} reached 7726.43 and 7734.12 respectively. This supports the same conclusion as the 30-second comparison: deeper tabu intensification is useful on large instances.
 
 \begin{table}[htbp]
 \centering
-\caption{Valores finales en las curvas largas de 180 segundos.}
+\caption{Long-run convergence values with 180 seconds per algorithm.}
 \begin{tabular}{lcc}
 \toprule
-Instancia & \grasp{} final & \graspTS{} final \\
+Instance & \grasp{} final & \graspTS{} final \\
 \midrule
-\texttt{MDG-a\_16} & 7748.58 & 7789.24 \\
-\texttt{MDG-a\_13} & 7755.63 & 7798.43 \\
+MDG-a\_16\_n500\_m50 & 7726.43 & 7792.77 \\
+MDG-a\_13\_n500\_m50 & 7734.12 & 7798.43 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.95\textwidth]{csv_final/convergence_curves_large.png}
-\caption{Curvas de convergencia con 180 segundos en dos instancias grandes. \graspTS{} sigue encontrando mejoras dentro de fases largas de \tabu{} y alcanza valores finales superiores.}
-\label{fig:long-convergence}
-\end{figure}
+\section{Discussion}
 
-La Figura \ref{fig:long-convergence} apoya la segunda observación solicitada: al conceder más tiempo, la intensificación de \tabu{} no queda simplemente bloqueada, sino que sigue descubriendo mejoras relevantes dentro de las instancias grandes seleccionadas.
+The results show two different regimes. On small instances, both methods reach the same values. These instances are too easy under a 30-second budget, so \tabu{} adds no measurable benefit.
 
-\section{Discusión}
+On large instances, \graspTS{} improves the baseline. It has lower average deviation, more paired wins, and all best hits on the large group. The reason is consistent with the implementation: the large instances leave more room for local optima, and \tabu{} can cross worsening moves while preserving the best global solution.
 
-Los resultados actuales muestran dos regímenes distintos. En instancias pequeñas, ambos algoritmos saturan el problema con 30 segundos y la mejora tabú resulta redundante. En instancias grandes, la situación cambia: el espacio de búsqueda conserva suficiente dificultad para que la memoria, la aceptación de empeoramientos y la intensificación de \tabu{} produzcan soluciones medias mejores.
+The improvement is not free. \tabu{} spends more time inside each trajectory and completes fewer independent restarts than plain \grasp{}. For small instances this extra depth is unnecessary. For large instances it pays off because the search space is harder and the memory mechanism helps escape local regions.
 
-La comparación también subraya la importancia de medir con telemetría correcta y datos actualizados. Antes de registrar las mejoras internas de \tabu{}, la evolución de \graspTS{} quedaba resumida de forma incompleta. Con el pipeline regenerado, la lectura experimental es clara: \graspTS{} gana 36 de 45 pares grandes, logra 12 mejores observados frente a 0 de \grasp{} y reduce la desviación media de 0.6379\% a 0.2284\%.
+The main limitation is that the reference \(BK\) is the best value observed in our runs, not an external optimum. Also, calibration was sequential rather than a full joint grid over \(\alpha\) and tenure. Finally, the implementation tracks node frequencies but does not yet use them as a long-term diversification mechanism.
 
-Desde el punto de vista algorítmico, \grasp{} favorece amplitud: muchos reinicios relativamente baratos. \graspTS{} favorece profundidad: menos trayectorias, pero con mayor capacidad de escapar de óptimos locales. Los resultados indican que la profundidad adicional compensa en el grupo \(n=500\), especialmente cuando el algoritmo dispone de memoria tabú bidireccional y un tenure bien calibrado.
+\section{Conclusions}
 
-\section{Limitaciones}
+\tabu{} is useful in this project, but not uniformly. It does not improve \grasp{} on the small instances because both methods already saturate them. On the large instances, \graspTS{} clearly improves the strengthened \grasp{} baseline under the calibrated parameters and the same time budget.
 
-El estudio tiene varias limitaciones que conviene explicitar:
-
-\begin{itemize}
-    \item el BK usado en las tablas es el mejor valor observado en los experimentos actuales, no un óptimo certificado ni un valor externo de literatura;
-    \item la calibración de \(\alpha\) y tenure es secuencial, no un barrido conjunto completo;
-    \item las curvas largas se han ejecutado en dos instancias representativas, no en todo el conjunto;
-    \item la frecuencia de aparición de nodos se registra parcialmente, pero no se usa todavía como mecanismo de diversificación de largo plazo.
-\end{itemize}
-
-Estas limitaciones no invalidan la conclusión principal, pero acotan su alcance. El resultado debe interpretarse como una comparación experimental interna, reproducible en este repositorio, bajo los presupuestos de tiempo y las instancias indicadas.
-
-\section{Conclusiones}
-
-El proyecto implementa y compara dos metaheurísticas para el \mdp{}: \grasp{} con búsqueda local de mejor mejora y \graspTS{} con \tabu{}. La calibración selecciona parámetros separados por grupo de instancias y la comparación final se realiza con semillas emparejadas y presupuestos temporales iguales.
-
-Las conclusiones principales son:
-
-\begin{enumerate}
-    \item En instancias pequeñas, ambos algoritmos empatan en todos los pares de ejecución. El problema queda saturado bajo 30 segundos.
-    \item En instancias grandes, \graspTS{} supera claramente a \grasp{}: mejora la desviación media, obtiene más victorias emparejadas y alcanza más mejores observados.
-    \item El test de Wilcoxon en instancias grandes da \(p=8.24\cdot 10^{-8}\), lo que respalda que la diferencia no es atribuible solo al azar de las ejecuciones.
-    \item La evolución interna de \tabu{} muestra 1403 movimientos de empeoramiento sobre 2586 iteraciones, evidenciando el mecanismo de escape de óptimos locales.
-    \item Las curvas de 180 segundos confirman que \graspTS{} sigue encontrando mejoras cuando recibe más tiempo en instancias grandes.
-\end{enumerate}
-
-La respuesta final a la pregunta del proyecto es, por tanto, matizada pero clara: \tabu{} no aporta ventaja observable en instancias pequeñas ya saturadas, pero sí mejora de forma significativa el rendimiento de \grasp{} en instancias grandes bajo la implementación corregida y los datos actuales.
-
-\appendix
-\section{Ficheros reproducibles}
-
-Los principales ficheros que respaldan este informe son:
-
-\begin{longtable}{p{5.5cm}p{9cm}}
-\toprule
-Fichero & Uso \\
-\midrule
-\path{experiments/calibration_summary.json} & Parámetros calibrados por grupo. \\
-\path{experiments/comparison_results.csv} & Resultados agregados por instancia. \\
-\path{experiments/comparison_runs.csv} & Ejecuciones individuales emparejadas. \\
-\path{experiments/comparison_tests.json} & Test de Wilcoxon y resumen de victorias. \\
-\path{csv_final/ts_evolution_single_restart.csv} & Traza interna de una reiniciación de \tabu{}. \\
-\path{csv_final/ts_evolution_plot.png} & Figura de evolución interna de \tabu{}. \\
-\path{csv_final/convergence_curves_large.csv} & Datos de convergencia a 180 segundos. \\
-\path{csv_final/convergence_curves_large.png} & Figura de convergencia en instancias grandes. \\
-\bottomrule
-\end{longtable}
+The most important lesson is that the value of \tabu{} depends on the instance size and on implementation details: complete swap evaluation, bidirectional tabu memory, dynamic tenure, aspiration, and correct time control all matter. With more time, the natural next steps would be a full joint calibration of \(\alpha\) and tenure, a cleaner long-term frequency-based diversification mechanism, and comparison with Path Relinking.
 
 \end{document}

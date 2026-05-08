@@ -1,24 +1,27 @@
-\contentsline {section}{\numberline {1}Introduccion}{1}{section.1}%
-\contentsline {section}{\numberline {2}Algoritmos implementados}{1}{section.2}%
-\contentsline {subsection}{\numberline {2.1}GRASP}{1}{subsection.2.1}%
-\contentsline {subsection}{\numberline {2.2}Busqueda Tabu}{2}{subsection.2.2}%
-\contentsline {subsection}{\numberline {2.3}GRASP con Busqueda Tabu}{2}{subsection.2.3}%
-\contentsline {section}{\numberline {3}Decisiones de implementacion}{2}{section.3}%
-\contentsline {subsection}{\numberline {3.1}Representacion de soluciones}{2}{subsection.3.1}%
-\contentsline {subsection}{\numberline {3.2}Control de tiempo}{3}{subsection.3.2}%
-\contentsline {subsection}{\numberline {3.3}Telemetria de convergencia}{3}{subsection.3.3}%
-\contentsline {section}{\numberline {4}Dificultades encontradas}{3}{section.4}%
-\contentsline {section}{\numberline {5}Diseno experimental}{4}{section.5}%
-\contentsline {subsection}{\numberline {5.1}Fases}{4}{subsection.5.1}%
-\contentsline {subsection}{\numberline {5.2}Parametros calibrados}{4}{subsection.5.2}%
-\contentsline {section}{\numberline {6}Resultados}{4}{section.6}%
-\contentsline {subsection}{\numberline {6.1}Instancias pequenas}{4}{subsection.6.1}%
-\contentsline {subsection}{\numberline {6.2}Instancias grandes}{5}{subsection.6.2}%
-\contentsline {subsection}{\numberline {6.3}Resumen agregado}{5}{subsection.6.3}%
-\contentsline {section}{\numberline {7}Analisis visual solicitado}{5}{section.7}%
-\contentsline {subsection}{\numberline {7.1}Evolucion interna de Busqueda Tabu}{5}{subsection.7.1}%
-\contentsline {subsection}{\numberline {7.2}Efecto de ampliar el tiempo}{6}{subsection.7.2}%
-\contentsline {section}{\numberline {8}Discusion}{6}{section.8}%
-\contentsline {section}{\numberline {9}Limitaciones}{8}{section.9}%
-\contentsline {section}{\numberline {10}Conclusiones}{8}{section.10}%
-\contentsline {section}{\numberline {A}Ficheros reproducibles}{9}{appendix.A}%
+\contentsline {section}{\numberline {1}Introducción}{1}{section.1}%
+\contentsline {section}{\numberline {2}Relación con el código original de la asignatura}{1}{section.2}%
+\contentsline {section}{\numberline {3}Algoritmos implementados}{2}{section.3}%
+\contentsline {subsection}{\numberline {3.1}GRASP}{2}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Búsqueda Tabú}{2}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}GRASP con Búsqueda Tabú}{2}{subsection.3.3}%
+\contentsline {section}{\numberline {4}Decisiones de implementación}{3}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Representación de soluciones}{3}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Detalles de la Búsqueda Tabú}{3}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}Control de tiempo}{4}{subsection.4.3}%
+\contentsline {subsection}{\numberline {4.4}Telemetría de convergencia}{4}{subsection.4.4}%
+\contentsline {section}{\numberline {5}Dificultades encontradas}{4}{section.5}%
+\contentsline {section}{\numberline {6}Diseño experimental}{4}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Fases}{4}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}Parámetros calibrados}{5}{subsection.6.2}%
+\contentsline {section}{\numberline {7}Resultados}{5}{section.7}%
+\contentsline {subsection}{\numberline {7.1}Instancias pequeñas}{6}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}Instancias grandes}{6}{subsection.7.2}%
+\contentsline {subsection}{\numberline {7.3}Resumen agregado}{6}{subsection.7.3}%
+\contentsline {section}{\numberline {8}Análisis visual solicitado}{7}{section.8}%
+\contentsline {subsection}{\numberline {8.1}Evolución interna de Búsqueda Tabú}{7}{subsection.8.1}%
+\contentsline {subsection}{\numberline {8.2}Efecto de ampliar el tiempo}{7}{subsection.8.2}%
+\contentsline {section}{\numberline {9}Discusión}{9}{section.9}%
+\contentsline {section}{\numberline {10}Limitaciones}{9}{section.10}%
+\contentsline {section}{\numberline {11}Conclusiones}{9}{section.11}%
+\contentsline {section}{\numberline {A}Tabla completa de resultados}{10}{appendix.A}%
+\contentsline {section}{\numberline {B}Ficheros reproducibles}{10}{appendix.B}%

@@ -49,7 +49,7 @@ def improve(
         tabu_out.append(v_out)
         tabu_in.append(v_in)
         
-        # Tenencia Dinámica para evitar ciclos deterministas
+        # Tenencia dinámica para evitar ciclos deterministas
         current_tenure = random.randint(tabu_tenure, int(tabu_tenure * 1.5))
         
         # Ajustamos las listas FIFO al tamaño dinámico actual
@@ -121,13 +121,13 @@ def selectInterchange(sol, tabu_out, tabu_in, best_of):
             of_var_in = solution.distanceToSol(sol, v_in, without=v_out)
             delta = of_var_in - of_var_out
 
-            # Control Bidireccional Legible:
+            # Control bidireccional legible:
             # - ¿El nodo que quiero meter acaba de salir?
             # - ¿El nodo que quiero sacar acaba de entrar?
             is_tabu = (v_in in tabu_out) or (v_out in tabu_in)
 
             if is_tabu:
-                # Criterio de Aspiración
+                # Criterio de aspiración
                 if sol['of'] + delta > best_of:
                     if asp_delta is None or delta > asp_delta:
                         asp_delta = delta

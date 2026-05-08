@@ -86,8 +86,8 @@ En las 6 instancias pequenas, los 30 pares de ejecucion son empates exactos. El 
 
 | Instancia | GRASP final | GRASP+TS final |
 | --------- | ----------- | -------------- |
-| MDG-a_16 | 7748.58 | 7789.24 |
-| MDG-a_13 | 7755.63 | 7798.43 |
+| MDG-a_16 | 7726.43 | 7792.77 |
+| MDG-a_13 | 7734.12 | 7798.43 |
 
 Interpretacion: con mas tiempo, GRASP+TS sigue encontrando mejoras dentro de fases largas de Busqueda Tabu.
 
